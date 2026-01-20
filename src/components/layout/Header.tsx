@@ -4,7 +4,7 @@ export default function Header() {
     <header className="w-full">
       {/* 상단 알림 바 */}
       <div className="w-full bg-[#222222] text-center text-sm text-white">
-        <div className="mx-auto max-w-[1200px] py-2">
+        <div className="mx-auto max-w-[1200px] font-[Pretendard] py-2">
           🚨 선착순 모집! 국비지원 받고 4주 완성
         </div>
       </div>
@@ -54,23 +54,35 @@ export default function Header() {
             </a>
 
             {/* 메뉴 */}
-            <nav className="flex gap-8 text-sm font-medium text-#121212">
-              <a href="#" className="hover:text-black">
+            <nav className="flex gap-10 text-[18px] font-[Pretendard] text-gray-700">
+              <a
+                href="#"
+                className="hover:text-black transition-colors duration-200"
+              >
                 커뮤니티
               </a>
-              <a href="#" className="hover:text-black">
+              <a
+                href="#"
+                className="hover:text-black transition-colors duration-200"
+              >
                 질의응답
               </a>
             </nav>
           </div>
 
           {/* 오른쪽 메뉴 */}
-          <div className="flex items-center gap-2 text-sm text-[#4D4D4D]">
-            <a href="#" className="hover:text-black">
+          <div className="flex items-center gap-2 font-[Pretendard] text-[16px] text-gray-500">
+            <a
+              href="#"
+              className="hover:text-gray-900 transition-colors duration-200"
+            >
               로그인
             </a>
-            <span className="text-[#4D4D4D]">|</span>
-            <a href="#" className="hover:text-black">
+            <span className="text-gray-300">|</span>
+            <a
+              href="#"
+              className="hover:text-gray-900 transition-colors duration-200"
+            >
               회원가입
             </a>
           </div>
