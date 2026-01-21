@@ -1,16 +1,18 @@
 // src/components/layout/Footer.tsx
-
 export default function Footer() {
   return (
     <footer className="w-full bg-[#222222]">
-      <div className="mx-auto max-w-[1920px] px-[360px] pt-[80px] pb-[80px]">
-        {/* 피그마 기준: footer content width = 1200 */}
-        <div className="w-[1200px]">
-          {/* ======================
-              TOP (logo + camp list)
-              ====================== */}
-          <div className="h-[150.71px] w-[159px]">
-            {/* OZ logo: 159 x 24 (인라인 SVG) */}
+      {/* 
+        - 피그마: 바깥 1920 기준 / 안쪽 content 1200
+        - 반응형: 1200은 유지하되, 작은 화면에서는 w-full + px만 줄이기
+      */}
+      <div className="mx-auto w-full max-w-[1920px] px-[20px] py-[80px] sm:px-[32px] md:px-[48px] lg:px-[80px] xl:px-[360px]">
+        {/* content width = 1200 (큰 화면에선 정확히 1200, 작은 화면에선 꽉 차게) */}
+        <div className="mx-auto w-full max-w-[1200px]">
+          {/*
+              TOP (logo + camp list)*/}
+          <div className="w-full">
+            {/* OZ logo*/}
             <div className="h-[24px] w-[159px]">
               <svg
                 width="159"
@@ -49,7 +51,7 @@ export default function Footer() {
             </div>
 
             {/* Camp list: 18px / 140% / -3% / #CECECE */}
-            <ul className="mt-[24px] space-y-[16px] font-[Pretendard] text-[18px] leading-[24px] font-[300] tracking-[-0.03em] text-[#CECECE]">
+            <ul className="font-pretendard mt-[24px] space-y-[16px] text-[18px] leading-[24px] font-[300] tracking-[-0.03em] text-[#CECECE]">
               <li>
                 <a href="#" className="hover:text-white">
                   초격차캠프
@@ -69,13 +71,13 @@ export default function Footer() {
           </div>
 
           {/* ======================
-              Divider (피그마: 1px #707070, padding-top: 40)
+              Divider + Policy + Company info
               ====================== */}
-          <div className="mt-[40px] w-[1200px] border-t border-[#707070] pt-[40px]">
-            {/* Policy row: 1200 x 64 */}
-            <div className="flex h-[64px] w-[1200px] items-center justify-between">
-              {/* 정책 링크: 16px / 140% / -3% / #CECECE, width 322, gap 28 */}
-              <div className="flex w-[322px] items-center gap-x-[28px] font-[Pretendard] text-[16px] leading-[22.4px] font-[400] tracking-[-0.03em] text-[#CECECE]">
+          <div className="mt-[40px] border-t border-[#707070] pt-[40px]">
+            {/* Policy row: 원본은 1200 x 64, 반응형에서는 w-full로 */}
+            <div className="flex min-h-[64px] w-full flex-col gap-[16px] sm:flex-row sm:items-center sm:justify-between">
+              {/* 정책 링크: 16px / 140% / -3% / #CECECE, gap 28 */}
+              <div className="font-pretendard flex flex-wrap items-center gap-x-[28px] gap-y-[10px] text-[16px] leading-[22.4px] font-[400] tracking-[-0.03em] text-[#CECECE]">
                 <a href="#" className="hover:text-white">
                   개인정보처리방침
                 </a>
@@ -87,8 +89,8 @@ export default function Footer() {
                 </a>
               </div>
 
-              {/* Right icons: 132 x 24 (네가 준 SVG 그대로 인라인) */}
-              <div className="flex h-[24px] w-[132px] items-center justify-end">
+              {/* Right icons: 132 x 24 */}
+              <div className="flex h-[24px] w-[132px] items-center justify-start sm:justify-end">
                 <svg
                   className="h-[24px] w-[132px]"
                   viewBox="0 0 132 24"
@@ -131,13 +133,13 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Company info: 16px / 140% / -3% / #9D9D9D, width 640 */}
-            <div className="mt-[16px] w-[640px] font-[Pretendard] text-[16px] leading-[22.4px] font-[200] tracking-[-0.03em] text-[#9D9D9D]">
+            {/* Company info: 16px / 140% / -3% / #9D9D9D, width 640 (작은 화면에선 자동 줄바꿈) */}
+            <div className="font-pretendard mt-[16px] w-full max-w-[640px] text-[16px] leading-[22px] font-[200] tracking-[-0.05em] text-[#9D9D9D]">
               <p>
                 대표자 : 이한별 | 사업자 등록번호 : 540-86-00384 | 통신판매업
                 신고번호 : 2020-경기김포-3725호
               </p>
-              <p>
+              <p className="mt-[6px]">
                 주소 : 경기도 김포시 사우중로 87 201호 | 이메일 :
                 kdigital@nextrunners.co.kr | 전화 : 070-4099-8219
               </p>

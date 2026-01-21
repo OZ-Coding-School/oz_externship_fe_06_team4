@@ -54,7 +54,7 @@ export default function Header() {
             </a>
 
             {/* 메뉴 */}
-            <nav className="flex gap-8 text-sm font-medium text-#121212">
+            <nav className="text-#121212 flex gap-8 text-sm font-medium">
               <a href="#" className="hover:text-black">
                 커뮤니티
               </a>
@@ -77,5 +77,5 @@ export default function Header() {
         </div>
       </div>
     </header>
-  );
+  )
 }
