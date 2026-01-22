@@ -72,3 +72,70 @@ export interface CreateCommunityPostResponse {
   detail: string
   pk: number
 }
+
+// ---------------------------------- 김재윤 파트 ---------------------------------- //
+
+// =======================
+// Community - Detail
+// =======================
+
+export interface CommunityPostDetail {
+  id: number
+  author: CommunityAuthor
+  title: string
+  content: string
+  thumbnail_img_url: string | null
+  category: CommunityCategory
+  view_count: number
+  like_count: number
+  comment_count: number
+  created_at: string // ISO string
+  updated_at: string // ISO string
+  is_liked: boolean
+  is_author: boolean
+}
+
+// =======================
+// Community - Delete Post
+// =======================
+
+export interface DeleteCommunityPostResponse {
+  detail: string
+}
+
+// =======================
+// Community - Comments
+// =======================
+
+export interface CommunityComment {
+  id: number
+  author: CommunityAuthor
+  content: string
+  created_at: string // ISO string
+  updated_at: string // ISO string
+  is_author: boolean
+}
+
+export interface GetCommunityCommentsResponse
+  extends PaginatedResponse<CommunityComment> {}
+
+export interface CreateCommunityCommentBody {
+  content: string
+}
+
+export interface CreateCommunityCommentResponse {
+  id: number
+  detail: string
+}
+
+export interface UpdateCommunityCommentBody {
+  content: string
+}
+
+export interface UpdateCommunityCommentResponse {
+  detail: string
+}
+
+export interface DeleteCommunityCommentResponse {
+  detail: string
+}

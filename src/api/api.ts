@@ -7,6 +7,8 @@ import type {
   CreateCommunityPostResponse,
   GetCommunityPostsParams,
   PaginatedResponse,
+  CreateCommunityCommentBody,
+  UpdateCommunityCommentBody,
 } from '../types'
 
 /**
@@ -108,4 +110,112 @@ export const communityApi = {
   getCategories: getCommunityCategories,
   getPosts: getCommunityPosts,
   createPost: createCommunityPost,
+}
+
+// ---------------------------------- 김재윤 파트 ---------------------------------- //
+
+
+/**
+ * 4) 커뮤니티 게시글 상세 조회
+ * GET /api/v1/posts/{postId}
+ */
+export async function getCommunityPostDetail(postId: number) {
+  const res = await api.get(`/api/v1/posts/${postId}`)
+  return res.data
+}
+
+
+/**
+ * 5) 커뮤니티 게시글 삭제
+ * DELETE /api/v1/posts/{postId}
+ */
+export async function deleteCommunityPost(
+  postId: number,
+  token?: string
+) {
+  const res = await api.delete(`/api/v1/posts/${postId}`, {
+    headers: {
+      ...withAuth(token),
+    },
+  })
+  return res.data
+}
+
+/**
+ * 6) 커뮤니티 댓글 목록 조회
+ * GET /api/v1/posts/{postId}/comments
+ */
+export async function getCommunityComments(
+  postId: number,
+  params?: { page?: number; page_size?: number }
+) {
+  const q = toQuery(params as unknown as Record<string, unknown>)
+  const suffix = q.toString() ? `?${q.toString()}` : ''
+
+  const res = await api.get(
+    `/api/v1/posts/${postId}/comments${suffix}`
+  )
+  return res.data
+}
+
+
+/**
+ * 7) 커뮤니티 댓글 작성
+ * POST /api/v1/posts/{postId}/comments
+ */
+export async function createCommunityComment(
+  postId: number,
+  body: CreateCommunityCommentBody,
+  token?: string
+) {
+  const res = await api.post(
+    `/api/v1/posts/${postId}/comments`,
+    body,
+    {
+      headers: {
+        ...withAuth(token),
+      },
+    }
+  )
+  return res.data
+}
+
+/**
+ * 8) 커뮤니티 댓글 수정
+ * PUT /api/v1/comments/{commentId}
+ */
+export async function updateCommunityComment(
+  commentId: number,
+  body: UpdateCommunityCommentBody,
+  token?: string
+) {
+  const res = await api.put(
+    `/api/v1/comments/${commentId}`,
+    body,
+    {
+      headers: {
+        ...withAuth(token),
+      },
+    }
+  )
+  return res.data
+}
+
+/**
+ * 9) 커뮤니티 댓글 삭제
+ * DELETE /api/v1/comments/{commentId}
+ */
+export async function deleteCommunityComment(
+  commentId: number,
+  token?: string
+) {
+  const res = await api.delete(
+    `/api/v1/comments/${commentId}`,
+    {
+      headers: {
+        ...withAuth(token),
+      },
+    }
+  )
+  return res.data
 }
