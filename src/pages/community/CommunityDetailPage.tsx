@@ -1,22 +1,39 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
   getCommunityPostDetail,
   getCommunityComments,
+  createCommunityComment,
+  likeCommunityPost,
+  unlikeCommunityPost,
+  isLoggedIn,
 } from './../../api/api'
-import type {
-  CommunityPostDetail,
-  CommunityComment,
-} from './../../types'
+import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
 
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
+  const navigate = useNavigate()
+
   const [post, setPost] = useState<CommunityPostDetail | null>(null)
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // 댓글 작성
+  const [newComment, setNewComment] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // 좋아요 상태
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+
+  // 댓글 정렬
+  const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
+
+  // 로그인 상태
+  const loggedIn = isLoggedIn()
 
   useEffect(() => {
     if (!postId) {
@@ -29,12 +46,14 @@ export default function CommunityDetailPage() {
       try {
         setLoading(true)
         setError(null)
-        
+
         const postData = await getCommunityPostDetail(Number(postId))
         const commentData = await getCommunityComments(Number(postId))
-        
+
         setPost(postData)
         setComments(commentData.results || [])
+        setIsLiked(postData.is_liked || false)
+        setLikeCount(postData.like_count || 0)
       } catch (err) {
         console.error('데이터 로딩 실패:', err)
         setError('게시글을 불러오는데 실패했습니다.')
@@ -48,23 +67,102 @@ export default function CommunityDetailPage() {
     fetchData()
   }, [postId])
 
-  // 시간 표시 포맷팅 함수
+  // 시간 표시 포맷팅
   const formatTimeAgo = (createdAt: string) => {
     const hours = Math.floor(
       (Date.now() - new Date(createdAt).getTime()) / 1000 / 60 / 60
     )
-    
+
     if (hours < 1) return '방금 전'
     if (hours < 24) return `${hours}시간 전`
-    
+
     const days = Math.floor(hours / 24)
     if (days < 7) return `${days}일 전`
-    
+
     return new Date(createdAt).toLocaleDateString()
   }
 
+  // 좋아요 토글
+  const handleLikeToggle = async () => {
+    if (!loggedIn) {
+      if (confirm('로그인이 필요한 기능입니다. 로그인 하시겠습니까?')) {
+        navigate('/login', { state: { from: `/community/${postId}` } })
+      }
+      return
+    }
+
+    try {
+      if (isLiked) {
+        await unlikeCommunityPost(Number(postId))
+        setIsLiked(false)
+        setLikeCount((prev) => prev - 1)
+      } else {
+        await likeCommunityPost(Number(postId))
+        setIsLiked(true)
+        setLikeCount((prev) => prev + 1)
+      }
+    } catch (err) {
+      console.error('좋아요 처리 실패:', err)
+      alert('좋아요 처리에 실패했습니다.')
+    }
+  }
+
+  // 댓글 작성
+  const handleCommentSubmit = async () => {
+    if (!loggedIn) {
+      alert('로그인이 필요합니다.')
+      navigate('/login', { state: { from: `/community/${postId}` } })
+      return
+    }
+
+    if (!newComment.trim()) {
+      alert('댓글 내용을 입력해주세요.')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await createCommunityComment(Number(postId), { content: newComment })
+
+      // 댓글 목록 새로고침
+      const commentData = await getCommunityComments(Number(postId))
+      setComments(commentData.results || [])
+      
+      // 게시글 정보도 업데이트 (댓글 개수 반영)
+      const postData = await getCommunityPostDetail(Number(postId))
+      setPost(postData)
+      
+      setNewComment('')
+      alert('댓글이 등록되었습니다.')
+    } catch (err) {
+      console.error('댓글 작성 실패:', err)
+      alert('댓글 작성에 실패했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // 댓글 정렬 토글
+  const handleSortToggle = () => {
+    setSortOrder((prev) => (prev === 'latest' ? 'oldest' : 'latest'))
+  }
+
+  // 정렬된 댓글 목록
+  const sortedComments = [...comments].sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime()
+    const dateB = new Date(b.created_at).getTime()
+    return sortOrder === 'latest' ? dateB - dateA : dateA - dateB
+  })
+
+  // 공유하기
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href)
+    alert('링크가 복사되었습니다.')
+  }
+
   if (loading) return <div className="py-20 text-center">로딩 중...</div>
-  if (error) return <div className="py-20 text-center text-red-500">{error}</div>
+  if (error)
+    return <div className="py-20 text-center text-red-500">{error}</div>
   if (!post) return <div className="py-20 text-center">게시글이 없습니다.</div>
 
   return (
@@ -98,7 +196,7 @@ export default function CommunityDetailPage() {
       {/* 메타 정보 */}
       <div className="mt-3 flex items-center gap-4 text-[16px] text-[#9D9D9D]">
         <span>조회수 {post.view_count.toLocaleString()}</span>
-        <span>좋아요 {post.like_count.toLocaleString()}</span>
+        <span>좋아요 {likeCount.toLocaleString()}</span>
         <span>{formatTimeAgo(post.created_at)}</span>
       </div>
 
@@ -111,31 +209,33 @@ export default function CommunityDetailPage() {
 
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
-        <button 
-          className="flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] text-[#4D4D4D] hover:bg-gray-50"
-          onClick={() => {
-            // TODO: 좋아요 API 연결
-            console.log('좋아요 클릭')
-          }}
+        <button
+          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] transition-colors ${
+            isLiked
+              ? 'border-[#6201E0] bg-[#6201E0] text-white'
+              : 'border-[#CECECE] text-[#707070] hover:bg-gray-50'
+          }`}
+          onClick={handleLikeToggle}
         >
-          <img src="/icons/thumbs-up.svg" className="h-4 w-4" alt="좋아요" />
-          {post.like_count.toLocaleString()}
+          <img
+            src="/icons/thumbs-up.svg"
+            className="h-4 w-4"
+            alt="좋아요"
+            style={{ filter: isLiked ? 'brightness(0) invert(1)' : 'none' }}
+          />
+          {likeCount.toLocaleString()}
         </button>
 
-        <button 
-          className="flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] text-[#4D4D4D] hover:bg-gray-50"
-          onClick={() => {
-            // TODO: 공유 기능 구현
-            navigator.clipboard.writeText(window.location.href)
-            alert('링크가 복사되었습니다.')
-          }}
+        <button
+          className="flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] text-[#707070] border-[#CECECE] hover:bg-gray-50"
+          onClick={handleShare}
         >
           <img src="/icons/link.svg" className="h-4 w-4" alt="공유" />
           공유하기
         </button>
       </div>
 
-      <hr className="my-12 border-[#CECECE]"/>
+      <hr className="my-12 border-[#CECECE]" />
 
       {/* 댓글 헤더 */}
       <div className="mb-6 flex items-center justify-between">
@@ -144,8 +244,11 @@ export default function CommunityDetailPage() {
           댓글 {post.comment_count}개
         </div>
 
-        <button className="flex items-center gap-1 text-[16px] text-[#4D4D4D]">
-          최신순
+        <button 
+          className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
+          onClick={handleSortToggle}
+        >
+          {sortOrder === 'latest' ? '최신순' : '오래된순'}
           <img
             src="/icons/swap-vertical-outline.svg"
             className="h-4 w-4"
@@ -154,30 +257,61 @@ export default function CommunityDetailPage() {
         </button>
       </div>
 
+      {/* 댓글 작성 영역 */}
+      {loggedIn ? (
+        <div className="mb-6 flex gap-3">
+          <img
+            src={DEFAULT_AVATAR}
+            className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+            alt="내 프로필"
+          />
+          <div className="flex-1">
+            <textarea
+              className="w-full rounded-lg border p-3 text-[16px] focus:border-[#6201E0] focus:outline-none"
+              placeholder="댓글을 입력하세요"
+              rows={3}
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                className="rounded-lg bg-[#6201E0] px-6 py-2 text-white hover:bg-[#5001C0] disabled:bg-gray-300"
+                onClick={handleCommentSubmit}
+                disabled={isSubmitting || !newComment.trim()}
+              >
+                {isSubmitting ? '등록 중...' : '등록'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-lg border bg-gray-50 p-6 text-center">
+          <p className="text-[16px] text-[#4D4D4D]">
+            댓글을 작성하려면 로그인이 필요합니다.
+          </p>
+          <button
+            className="mt-3 rounded-lg bg-[#6201E0] px-6 py-2 text-white hover:bg-[#5001C0]"
+            onClick={() =>
+              navigate('/login', { state: { from: `/community/${postId}` } })
+            }
+          >
+            로그인하기
+          </button>
+        </div>
+      )}
+
       {/* 댓글 리스트 */}
       <ul>
-        {comments.length === 0 ? (
+        {sortedComments.length === 0 ? (
           <li className="py-10 text-center text-[#9D9D9D]">
             첫 댓글을 남겨보세요!
           </li>
         ) : (
-          comments.map((comment, index) => (
-            <li
-              key={comment.id}
-              className="relative flex gap-3 py-6"
-            >
+          sortedComments.map((comment, index) => (
+            <li key={comment.id} className="relative flex gap-3 py-6">
               {/* 댓글 구분선 */}
               {index !== 0 && (
-                <span
-                  className="
-                    absolute
-                    left-[48px]
-                    right-0
-                    top-0
-                    border-t
-                    border-[#CECECE]
-                  "
-                />
+                <span className="absolute left-[48px] right-0 top-0 border-t border-[#CECECE]" />
               )}
 
               {/* 프로필 */}
@@ -191,7 +325,7 @@ export default function CommunityDetailPage() {
               />
 
               {/* 댓글 내용 */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[14px] font-medium text-[#121212]">
                     {comment.author.nickname}
@@ -201,7 +335,7 @@ export default function CommunityDetailPage() {
                   </span>
                 </div>
 
-                <p className="mt-1 text-[16px] text-[#121212] break-words">
+                <p className="mt-1 break-words text-[16px] text-[#121212]">
                   {comment.content}
                 </p>
               </div>
