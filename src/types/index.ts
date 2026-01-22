@@ -1,4 +1,11 @@
-// api 참고 완료~
+// 명세서: search_filter enum = "author" | "title" | "content" | "title_or_content"
+export type SearchFilterOption =
+  | 'author'
+  | 'title'
+  | 'content'
+  | 'title_or_content'
+
+// 명세서: sort enum = "latest" | "oldest" | "most_views" | "most_likes" | "most_comments"
 export type SortOption =
   | 'latest'
   | 'oldest'
@@ -6,11 +13,9 @@ export type SortOption =
   | 'most_likes'
   | 'most_comments'
 
-export type SearchFilterOption =
-  | 'author'
-  | 'title'
-  | 'content'
-  | 'title_or_content'
+// =======================
+// Community - Types
+// =======================
 
 export interface CommunityCategory {
   id: number
@@ -20,7 +25,7 @@ export interface CommunityCategory {
 export interface CommunityAuthor {
   id: number
   nickname: string
-  profile_img_url: string | null
+  profile_img_url: string
 }
 
 export interface CommunityPostListItem {
@@ -43,6 +48,10 @@ export interface PaginatedResponse<T> {
   previous: string | null
   results: T[]
 }
+
+// =======================
+// API - Params / Body / Response
+// =======================
 
 export interface GetCommunityPostsParams {
   page?: number
