@@ -1,0 +1,6 @@
+# 기본 텍스트는 LF로 통일
+* text=auto eol=lf
+
+# 만약 Windows용 배치파일은 예외
+*.bat text eol=crlf
+*.cmd text eol=crlf
