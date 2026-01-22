@@ -1,7 +1,7 @@
 // src/components/layout/Header.tsx
 export default function Header() {
   return (
-    <header className="w-full">
+    <header className="fixed top-0 left-0 z-50 w-full">
       {/* 상단 알림 바 */}
       <div className="w-full bg-[#222222] text-center text-sm text-white">
         <div className="mx-auto max-w-[1200px] font-[Pretendard] py-2">
