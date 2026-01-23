@@ -74,12 +74,12 @@ function isAuthenticated(request: Request): boolean {
 
 const CATEGORIES: CommunityCategory[] = [
   { id: 1, name: '전체' },
-  { id: 2, name: '인기글' },
-  { id: 3, name: '공지사항' },
-  { id: 4, name: '자유게시판' },
-  { id: 5, name: '고민' },
-  { id: 6, name: '구인/협업' },
-  { id: 7, name: '자료' },
+  { id: 2, name: '공지사항' },
+  { id: 3, name: '자유게시판' },
+  { id: 4, name: '일상 공유' },
+  { id: 5, name: '개발 지식 공유' },
+  { id: 6, name: '취업 정보 공유' },
+  { id: 7, name: '프로젝트 구인' },
 ]
 
 const nowISO = () => new Date().toISOString()
