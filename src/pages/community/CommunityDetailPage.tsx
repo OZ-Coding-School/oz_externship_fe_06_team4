@@ -11,6 +11,7 @@ import {
 import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
+const MAX_COMMENT_LENGTH = 500
 
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -31,6 +32,9 @@ export default function CommunityDetailPage() {
 
   // 댓글 정렬
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
+
+  // 댓글 삭제 팝업
+  const [deleteCommentId, setDeleteCommentId] = useState<number | null>(null)
 
   // 로그인 상태
   const loggedIn = isLoggedIn()
@@ -120,6 +124,11 @@ export default function CommunityDetailPage() {
       return
     }
 
+    if (newComment.length > MAX_COMMENT_LENGTH) {
+      alert(`댓글은 최대 ${MAX_COMMENT_LENGTH}자까지 작성 가능합니다.`)
+      return
+    }
+
     try {
       setIsSubmitting(true)
       await createCommunityComment(Number(postId), { content: newComment })
@@ -139,6 +148,28 @@ export default function CommunityDetailPage() {
       alert('댓글 작성에 실패했습니다.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // 댓글 삭제
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      // API 호출 구현 필요
+      // await deleteCommunityComment(Number(postId), commentId)
+      
+      // 임시: 로컬에서 삭제
+      setComments(prev => prev.filter(c => c.id !== commentId))
+      
+      // 댓글 개수 업데이트
+      if (post) {
+        setPost({ ...post, comment_count: post.comment_count - 1 })
+      }
+      
+      setDeleteCommentId(null)
+      alert('댓글이 삭제되었습니다.')
+    } catch (err) {
+      console.error('댓글 삭제 실패:', err)
+      alert('댓글 삭제에 실패했습니다.')
     }
   }
 
@@ -173,7 +204,6 @@ export default function CommunityDetailPage() {
       </span>
 
       {/* 제목 + 작성자 */}
-{/* 제목 + 작성자 */}
       <div className="mt-2 flex items-start justify-between">
         <h1 className="max-w-[700px] text-[32px] font-bold leading-tight text-[#121212]">
           {post.title}
@@ -249,12 +279,16 @@ export default function CommunityDetailPage() {
         <div className="mb-6 flex justify-center">
           <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4">
             <textarea
-              className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#9D9D9D] placeholder-[#CECECE] focus:outline-none"
+              className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none"
               placeholder="개인정보를 공유 및 요청하거나, 명예 회손, 무단 광고, 불법 정보 유포시 모니터링 후 삭제될 수 있습니다."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
+              maxLength={MAX_COMMENT_LENGTH}
             />
-            <div className="absolute bottom-4 right-4">
+            <div className="absolute bottom-4 right-4 flex items-center gap-3">
+              <span className="text-[14px] text-[#9D9D9D]">
+                {newComment.length}/{MAX_COMMENT_LENGTH}
+              </span>
               <button
                 className="rounded-full bg-[#E5E5E5] px-5 py-1.5 text-[16px] text-[#9D9D9D] hover:bg-[#6201E0] hover:text-white disabled:bg-[#E5E5E5] disabled:text-[#9D9D9D] disabled:cursor-not-allowed transition-colors"
                 onClick={handleCommentSubmit}
@@ -323,6 +357,22 @@ export default function CommunityDetailPage() {
                     <span className="text-[16px] text-[#9D9D9D]">
                       {formatTimeAgo(comment.created_at)}
                     </span>
+                    {/* 삭제 버튼 - 로그인한 경우 표시 (임시) */}
+                    {loggedIn && (
+                      <>
+                        <span className="text-[16px] text-[#9D9D9D]">|</span>
+                        <button
+                          onClick={() => {
+                            console.log('Comment author:', comment.author)
+                            console.log('is_me:', (comment.author as any).is_me)
+                            setDeleteCommentId(comment.id)
+                          }}
+                          className="text-[16px] text-[#6201E0] hover:underline"
+                        >
+                          삭제
+                        </button>
+                      </>
+                    )}
                   </div>
 
                   <p className="mt-1 break-words text-[16px] text-[#4D4D4D]">
@@ -334,6 +384,32 @@ export default function CommunityDetailPage() {
           )}
         </ul>
       </div>
+
+      {/* 댓글 삭제 확인 팝업 */}
+      {deleteCommentId !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="w-[428px] h-[165px] rounded-[20px] bg-white p-8 shadow-xl border border-[#E5E5E5]">
+            <h2 className="mb-6 text-center text-[20px] font-bold text-[#121212]">
+              댓글을 삭제하시겠습니까?
+            </h2>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteCommentId(null)}
+                className="flex-1 rounded-full bg-[#E8E0F5] py-3 text-[16px] font-medium text-[#6201E0] hover:bg-[#D8CEEB] transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => handleDeleteComment(deleteCommentId)}
+                className="flex-1 rounded-full bg-[#6201E0] py-3 text-[16px] font-medium text-white hover:bg-[#5001C0] transition-colors"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
