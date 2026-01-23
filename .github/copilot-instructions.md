@@ -27,9 +27,10 @@ This is a React 19 TypeScript application built with Vite, featuring a community
 
 ### Styling & UI
 - **Tailwind CSS**: Utility-first styling with custom config
-- **Icons**: Lucide React icons
+- **Icons**: Lucide React icons served from `/icons/` directory
 - **Fonts**: Pretendard font family
-- **Responsive**: Max-width containers (`max-w-[1200px]`)
+- **Responsive**: Max-width containers (`max-w-[1200px]` for header, `max-w-[820px]` for post content, `max-w-[944px]` for comments)
+- **Korean UI**: All user-facing text in Korean
 
 ## Development Workflow
 
@@ -72,6 +73,7 @@ npm run preview    # Preview production build
 - **State management**: Multiple `useState` hooks for form inputs, loading, error states
 - **Navigation**: `useNavigate` from React Router for programmatic routing
 - **URL params**: `useParams` for route parameters like `postId`
+- **Modal patterns**: Fixed positioning with `z-50`, centered with flexbox
 
 ## Key Files to Reference
 
@@ -114,5 +116,11 @@ npm run preview    # Preview production build
 ### Styling
 - Use Tailwind utility classes primarily
 - Follow existing responsive patterns with `max-w-[1200px]` containers
-- Maintain header/footer spacing in layout components</content>
+- Maintain header/footer spacing in layout components
+- Use Korean text for all user-facing content
+
+### MSW Development
+- Add mock handlers in `src/mocks/handlers.ts` for new API endpoints
+- Follow existing type definitions for mock data structure
+- Test API integrations in development before backend implementation</content>
 <parameter name="filePath">/Users/admin/Documents/main project/oz_externship_fe_06_team4/.github/copilot-instructions.md
