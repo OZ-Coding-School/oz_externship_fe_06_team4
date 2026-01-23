@@ -11,11 +11,6 @@ import type {
   UpdateCommunityCommentBody,
 } from '../types'
 
-/**
- * - VITE_API_BASE_URL=https://api.ozcoding.site
- *
- * 없다면 ""로 두고, MSW/상대경로로도 동작 가능하게 구성
- */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /** axios 인스턴스 */
@@ -27,12 +22,36 @@ export const api = axios.create({
 })
 
 /**
+ * 쿠키에서 특정 키의 값을 가져오는 함수
+ */
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null
+  }
+  return null
+}
+
+/**
+ * 로그인 상태 확인 (refreshToken 쿠키 존재 여부)
+ */
+export function isLoggedIn(): boolean {
+  return getCookie('refreshToken') !== null
+}
+
+/**
+ * Access Token 가져오기 (로그인되어 있을 때만)
+ */
+export function getAccessToken(): string | null {
+  return getCookie('accessToken')
+}
+
+/**
  * undefined / null 제거 + querystring 생성
- * - GetCommunityPostsParams 같은 "선택적 필드" 객체를 안전하게 처리
  */
 export function toQuery(params?: Record<string, unknown>) {
   const sp = new URLSearchParams()
-
   if (!params) return sp
 
   Object.entries(params).forEach(([key, value]) => {
@@ -45,7 +64,6 @@ export function toQuery(params?: Record<string, unknown>) {
 
 /**
  * Authorization 헤더 주입 헬퍼
- * - 아직 로그인 연결 전이면 token 없이 호출하면 됨
  */
 function withAuth(token?: string) {
   if (!token) return {}
@@ -53,7 +71,7 @@ function withAuth(token?: string) {
 }
 
 // =============================
-// Community API (명세서 기준)
+// Community API
 // =============================
 
 /**
@@ -68,8 +86,6 @@ export async function getCommunityCategories(): Promise<CommunityCategory[]> {
 /**
  * 2) 커뮤니티 게시글 목록 조회
  * GET /api/v1/posts
- * Query:
- * - page, page_size, search, search_filter, category_id, sort
  */
 export async function getCommunityPosts(
   params?: GetCommunityPostsParams
@@ -85,10 +101,6 @@ export async function getCommunityPosts(
 /**
  * 3) 커뮤니티 게시글 작성
  * POST /api/v1/posts
- * Header:
- * - Authorization: Bearer token_value (필요)
- * Body:
- * - title, content, category_id
  */
 export async function createCommunityPost(
   body: CreateCommunityPostBody,
@@ -106,18 +118,10 @@ export async function createCommunityPost(
   return res.data
 }
 
-export const communityApi = {
-  getCategories: getCommunityCategories,
-  getPosts: getCommunityPosts,
-  createPost: createCommunityPost,
-}
-
-// ---------------------------------- 김재윤 파트 ---------------------------------- //
-
-
 /**
  * 4) 커뮤니티 게시글 상세 조회
- * GET /posts/{postId}
+ * GET /api/v1/posts/{postId}
+ * - 로그인 불필요
  */
 export async function getCommunityPostDetail(postId: number) {
   const res = await api.get(`/posts/${postId}`)
@@ -126,15 +130,14 @@ export async function getCommunityPostDetail(postId: number) {
 
 /**
  * 5) 커뮤니티 게시글 삭제
- * DELETE /posts/{postId}
+ * DELETE /api/v1/posts/{postId}
+ * - 로그인 필요
  */
-export async function deleteCommunityPost(
-  postId: number,
-  token?: string
-) {
+export async function deleteCommunityPost(postId: number) {
+  const token = getAccessToken()
   const res = await api.delete(`/posts/${postId}`, {
     headers: {
-      ...withAuth(token),
+      ...withAuth(token || undefined),
     },
   })
   return res.data
@@ -142,7 +145,8 @@ export async function deleteCommunityPost(
 
 /**
  * 6) 커뮤니티 댓글 목록 조회
- * GET /posts/{postId}/comments
+ * GET /api/v1/posts/{postId}/comments
+ * - 로그인 불필요
  */
 export async function getCommunityComments(
   postId: number,
@@ -151,48 +155,45 @@ export async function getCommunityComments(
   const q = toQuery(params as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
 
-  const res = await api.get(
-    `/posts/${postId}/comments${suffix}`
-  )
+  const res = await api.get(`/posts/${postId}/comments${suffix}`)
   return res.data
 }
 
 /**
  * 7) 커뮤니티 댓글 작성
- * POST /posts/{postId}/comments
+ * POST /api/v1/posts/{postId}/comments
+ * - 로그인 필요
  */
 export async function createCommunityComment(
   postId: number,
-  body: CreateCommunityCommentBody,
-  token?: string
+  body: CreateCommunityCommentBody
 ) {
-  const res = await api.post(
-    `/posts/${postId}/comments`,
-    body,
-    {
-      headers: {
-        ...withAuth(token),
-      },
-    }
-  )
+  const token = getAccessToken()
+  const res = await api.post(`/posts/${postId}/comments`, body, {
+    headers: {
+      ...withAuth(token || undefined),
+    },
+  })
   return res.data
 }
 
 /**
  * 8) 커뮤니티 댓글 수정
- * PUT /comments/{commentId}
+ * PUT /api/v1/posts/{postId}/comments/{commentId}
+ * - 로그인 필요
  */
 export async function updateCommunityComment(
+  postId: number,
   commentId: number,
-  body: UpdateCommunityCommentBody,
-  token?: string
+  body: UpdateCommunityCommentBody
 ) {
+  const token = getAccessToken()
   const res = await api.put(
-    `/comments/${commentId}`,
+    `/posts/${postId}/comments/${commentId}`,
     body,
     {
       headers: {
-        ...withAuth(token),
+        ...withAuth(token || undefined),
       },
     }
   )
@@ -201,19 +202,63 @@ export async function updateCommunityComment(
 
 /**
  * 9) 커뮤니티 댓글 삭제
- * DELETE /comments/{commentId}
+ * DELETE /api/v1/posts/{postId}/comments/{commentId}
+ * - 로그인 필요
  */
-export async function deleteCommunityComment(
-  commentId: number,
-  token?: string
-) {
-  const res = await api.delete(
-    `/comments/${commentId}`,
+export async function deleteCommunityComment(postId: number, commentId: number) {
+  const token = getAccessToken()
+  const res = await api.delete(`/posts/${postId}/comments/${commentId}`, {
+    headers: {
+      ...withAuth(token || undefined),
+    },
+  })
+  return res.data
+}
+
+/**
+ * 10) 커뮤니티 게시글 좋아요
+ * POST /api/v1/posts/{postId}/like
+ * - 로그인 필요
+ */
+export async function likeCommunityPost(postId: number) {
+  const token = getAccessToken()
+  const res = await api.post(
+    `/posts/${postId}/like`,
+    {},
     {
       headers: {
-        ...withAuth(token),
+        ...withAuth(token || undefined),
       },
     }
   )
   return res.data
+}
+
+/**
+ * 11) 커뮤니티 게시글 좋아요 취소
+ * DELETE /api/v1/posts/{postId}/like
+ * - 로그인 필요
+ */
+export async function unlikeCommunityPost(postId: number) {
+  const token = getAccessToken()
+  const res = await api.delete(`/posts/${postId}/like`, {
+    headers: {
+      ...withAuth(token || undefined),
+    },
+  })
+  return res.data
+}
+
+export const communityApi = {
+  getCategories: getCommunityCategories,
+  getPosts: getCommunityPosts,
+  createPost: createCommunityPost,
+  getPostDetail: getCommunityPostDetail,
+  deletePost: deleteCommunityPost,
+  getComments: getCommunityComments,
+  createComment: createCommunityComment,
+  updateComment: updateCommunityComment,
+  deleteComment: deleteCommunityComment,
+  likePost: likeCommunityPost,
+  unlikePost: unlikeCommunityPost,
 }
