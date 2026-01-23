@@ -173,12 +173,13 @@ export default function CommunityDetailPage() {
       </span>
 
       {/* 제목 + 작성자 */}
+{/* 제목 + 작성자 */}
       <div className="mt-2 flex items-start justify-between">
-        <h1 className="max-w-[640px] text-[32px] font-bold leading-tight text-[#121212]">
+        <h1 className="max-w-[700px] text-[32px] font-bold leading-tight text-[#121212]">
           {post.title}
         </h1>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-6 self-start">
           <img
             src={post.author.profile_img_url || DEFAULT_AVATAR}
             className="h-10 w-10 rounded-full object-cover"
@@ -187,7 +188,7 @@ export default function CommunityDetailPage() {
               e.currentTarget.src = DEFAULT_AVATAR
             }}
           />
-          <span className="text-[16px] font-medium text-[#121212]">
+          <span className="text-[16px] font-medium text-[#4D4D4D]">
             {post.author.nickname}
           </span>
         </div>
@@ -200,7 +201,10 @@ export default function CommunityDetailPage() {
         <span>{formatTimeAgo(post.created_at)}</span>
       </div>
 
-      <hr className="my-6 border-[#CECECE]" />
+      {/* 구분선 */}
+      <div className="my-6 flex justify-center">
+        <hr className="w-[944px] border-[#CECECE]" />
+      </div>
 
       {/* 본문 */}
       <div className="whitespace-pre-wrap text-[16px] leading-relaxed text-[#121212]">
@@ -210,7 +214,7 @@ export default function CommunityDetailPage() {
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
         <button
-          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] transition-colors ${
+          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] transition-colors ${
             isLiked
               ? 'border-[#6201E0] bg-[#6201E0] text-white'
               : 'border-[#CECECE] text-[#707070] hover:bg-gray-50'
@@ -227,7 +231,7 @@ export default function CommunityDetailPage() {
         </button>
 
         <button
-          className="flex items-center gap-1 rounded-full border px-4 py-2 text-[14px] text-[#707070] border-[#CECECE] hover:bg-gray-50"
+          className="flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] text-[#707070] border-[#CECECE] hover:bg-gray-50"
           onClick={handleShare}
         >
           <img src="/icons/link.svg" className="h-4 w-4" alt="공유" />
@@ -235,47 +239,24 @@ export default function CommunityDetailPage() {
         </button>
       </div>
 
-      <hr className="my-12 border-[#CECECE]" />
-
-      {/* 댓글 헤더 */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[20px] font-bold">
-          <img src="/icons/message-circle.svg" className="h-5 w-5" alt="댓글" />
-          댓글 {post.comment_count}개
-        </div>
-
-        <button 
-          className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
-          onClick={handleSortToggle}
-        >
-          {sortOrder === 'latest' ? '최신순' : '오래된순'}
-          <img
-            src="/icons/swap-vertical-outline.svg"
-            className="h-4 w-4"
-            alt="정렬"
-          />
-        </button>
+      {/* 구분선 */}
+      <div className="my-8 flex justify-center">
+        <hr className="w-[944px] border-[#CECECE]" />
       </div>
 
-      {/* 댓글 작성 영역 */}
-      {loggedIn ? (
-        <div className="mb-6 flex gap-3">
-          <img
-            src={DEFAULT_AVATAR}
-            className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
-            alt="내 프로필"
-          />
-          <div className="flex-1">
+      {/* 댓글 작성 영역 - 로그인한 경우만 표시 */}
+      {loggedIn && (
+        <div className="mb-6 flex justify-center">
+          <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4">
             <textarea
-              className="w-full rounded-lg border p-3 text-[16px] focus:border-[#6201E0] focus:outline-none"
-              placeholder="댓글을 입력하세요"
-              rows={3}
+              className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#9D9D9D] placeholder-[#CECECE] focus:outline-none"
+              placeholder="개인정보를 공유 및 요청하거나, 명예 회손, 무단 광고, 불법 정보 유포시 모니터링 후 삭제될 수 있습니다."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
             />
-            <div className="mt-2 flex justify-end">
+            <div className="absolute bottom-4 right-4">
               <button
-                className="rounded-lg bg-[#6201E0] px-6 py-2 text-white hover:bg-[#5001C0] disabled:bg-gray-300"
+                className="rounded-full bg-[#E5E5E5] px-5 py-1.5 text-[16px] text-[#9D9D9D] hover:bg-[#6201E0] hover:text-white disabled:bg-[#E5E5E5] disabled:text-[#9D9D9D] disabled:cursor-not-allowed transition-colors"
                 onClick={handleCommentSubmit}
                 disabled={isSubmitting || !newComment.trim()}
               >
@@ -284,65 +265,75 @@ export default function CommunityDetailPage() {
             </div>
           </div>
         </div>
-      ) : (
-        <div className="mb-6 rounded-lg border bg-gray-50 p-6 text-center">
-          <p className="text-[16px] text-[#4D4D4D]">
-            댓글을 작성하려면 로그인이 필요합니다.
-          </p>
-          <button
-            className="mt-3 rounded-lg bg-[#6201E0] px-6 py-2 text-white hover:bg-[#5001C0]"
-            onClick={() =>
-              navigate('/login', { state: { from: `/community/${postId}` } })
-            }
-          >
-            로그인하기
-          </button>
-        </div>
       )}
 
+      {/* 댓글 헤더 */}
+      <div className="mb-8 flex justify-center">
+        <div className="w-[944px] flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[20px] font-bold text-[#121212]">
+            <img src="/icons/message-circle.svg" className="h-5 w-5" alt="댓글" />
+            댓글 {post.comment_count}개
+          </div>
+
+          <button 
+            className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
+            onClick={handleSortToggle}
+          >
+            {sortOrder === 'latest' ? '최신순' : '오래된 순'}
+            <img
+              src="/icons/swap-vertical-outline.svg"
+              className="h-4 w-4"
+              alt="정렬"
+            />
+          </button>
+        </div>
+      </div>
+
       {/* 댓글 리스트 */}
-      <ul>
-        {sortedComments.length === 0 ? (
-          <li className="py-10 text-center text-[#9D9D9D]">
-            첫 댓글을 남겨보세요!
-          </li>
-        ) : (
-          sortedComments.map((comment, index) => (
-            <li key={comment.id} className="relative flex gap-3 py-6">
-              {/* 댓글 구분선 */}
-              {index !== 0 && (
-                <span className="absolute left-[48px] right-0 top-0 border-t border-[#CECECE]" />
-              )}
-
-              {/* 프로필 */}
-              <img
-                src={comment.author.profile_img_url || DEFAULT_AVATAR}
-                className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
-                alt={`${comment.author.nickname} 프로필`}
-                onError={(e) => {
-                  e.currentTarget.src = DEFAULT_AVATAR
-                }}
-              />
-
-              {/* 댓글 내용 */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[14px] font-medium text-[#121212]">
-                    {comment.author.nickname}
-                  </span>
-                  <span className="text-[12px] text-[#9D9D9D]">
-                    {formatTimeAgo(comment.created_at)}
-                  </span>
-                </div>
-
-                <p className="mt-1 break-words text-[16px] text-[#121212]">
-                  {comment.content}
-                </p>
-              </div>
+      <div className="flex justify-center">
+        <ul className="w-[944px]">
+          {sortedComments.length === 0 ? (
+            <li className="py-10 text-center text-[#9D9D9D]">
+              첫 댓글을 남겨보세요!
             </li>
-          ))
-        )}
-      </ul>
+          ) : (
+            sortedComments.map((comment, index) => (
+              <li key={comment.id} className="relative flex gap-3 py-6">
+                {/* 댓글 구분선 */}
+                {index !== 0 && (
+                  <span className="absolute left-0 right-0 top-0 border-t border-[#E5E5E5]" />
+                )}
+
+                {/* 프로필 */}
+                <img
+                  src={comment.author.profile_img_url || DEFAULT_AVATAR}
+                  className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                  alt={`${comment.author.nickname} 프로필`}
+                  onError={(e) => {
+                    e.currentTarget.src = DEFAULT_AVATAR
+                  }}
+                />
+
+                {/* 댓글 내용 */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[16px] font-medium text-[#121212]">
+                      {comment.author.nickname}
+                    </span>
+                    <span className="text-[16px] text-[#9D9D9D]">
+                      {formatTimeAgo(comment.created_at)}
+                    </span>
+                  </div>
+
+                  <p className="mt-1 break-words text-[16px] text-[#4D4D4D]">
+                    {comment.content}
+                  </p>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
     </div>
   )
 }
