@@ -25,7 +25,7 @@ export interface CommunityCategory {
 export interface CommunityAuthor {
   id: number
   nickname: string
-  profile_img_url: string
+  profile_img_url: string | null
 }
 
 export interface CommunityPostListItem {
