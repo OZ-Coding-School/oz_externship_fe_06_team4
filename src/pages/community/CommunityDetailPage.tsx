@@ -25,6 +25,7 @@ export default function CommunityDetailPage() {
   // 댓글 작성
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitClicked, setIsSubmitClicked] = useState(false)
 
   // 좋아요 상태
   const [isLiked, setIsLiked] = useState(false)
@@ -131,21 +132,26 @@ export default function CommunityDetailPage() {
 
     try {
       setIsSubmitting(true)
+      setIsSubmitClicked(true)
       await createCommunityComment(Number(postId), { content: newComment })
 
       // 댓글 목록 새로고침
       const commentData = await getCommunityComments(Number(postId))
       setComments(commentData.results || [])
-      
+
       // 게시글 정보도 업데이트 (댓글 개수 반영)
       const postData = await getCommunityPostDetail(Number(postId))
       setPost(postData)
-      
+
       setNewComment('')
       alert('댓글이 등록되었습니다.')
+
+      // 약간의 딜레이 후 클릭 상태 초기화
+      setTimeout(() => setIsSubmitClicked(false), 200)
     } catch (err) {
       console.error('댓글 작성 실패:', err)
       alert('댓글 작성에 실패했습니다.')
+      setIsSubmitClicked(false)
     } finally {
       setIsSubmitting(false)
     }
@@ -156,15 +162,15 @@ export default function CommunityDetailPage() {
     try {
       // API 호출 구현 필요
       // await deleteCommunityComment(Number(postId), commentId)
-      
+
       // 임시: 로컬에서 삭제
       setComments(prev => prev.filter(c => c.id !== commentId))
-      
+
       // 댓글 개수 업데이트
       if (post) {
         setPost({ ...post, comment_count: post.comment_count - 1 })
       }
-      
+
       setDeleteCommentId(null)
       alert('댓글이 삭제되었습니다.')
     } catch (err) {
@@ -244,18 +250,21 @@ export default function CommunityDetailPage() {
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
         <button
-          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] transition-colors ${
-            isLiked
-              ? 'border-[#6201E0] bg-[#6201E0] text-white'
-              : 'border-[#CECECE] text-[#707070] hover:bg-gray-50'
-          }`}
+          className={`flex items-center gap-1 rounded-full border-2 px-4 py-2 text-[12px] transition-all ${isLiked
+            ? 'border-[#6201E0] bg-[#F5EFFF] text-[#6201E0]'
+            : 'border-[#CECECE] bg-white text-[#707070]'
+            }`}
           onClick={handleLikeToggle}
         >
           <img
             src="/icons/thumbs-up.svg"
             className="h-4 w-4"
             alt="좋아요"
-            style={{ filter: isLiked ? 'brightness(0) invert(1)' : 'none' }}
+            style={{
+              filter: isLiked
+                ? 'invert(21%) sepia(100%) saturate(6534%) hue-rotate(268deg) brightness(91%) contrast(117%)'
+                : 'none'
+            }}
           />
           {likeCount.toLocaleString()}
         </button>
@@ -277,7 +286,7 @@ export default function CommunityDetailPage() {
       {/* 댓글 작성 영역 - 로그인한 경우만 표시 */}
       {loggedIn && (
         <div className="mb-6 flex justify-center">
-          <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4">
+          <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4 focus-within:border-[#6201E0] transition-colors">
             <textarea
               className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none"
               placeholder="개인정보를 공유 및 요청하거나, 명예 회손, 무단 광고, 불법 정보 유포시 모니터링 후 삭제될 수 있습니다."
@@ -290,9 +299,15 @@ export default function CommunityDetailPage() {
                 {newComment.length}/{MAX_COMMENT_LENGTH}
               </span>
               <button
-                className="rounded-full bg-[#E5E5E5] px-5 py-1.5 text-[16px] text-[#9D9D9D] hover:bg-[#6201E0] hover:text-white disabled:bg-[#E5E5E5] disabled:text-[#9D9D9D] disabled:cursor-not-allowed transition-colors"
                 onClick={handleCommentSubmit}
-                disabled={isSubmitting || !newComment.trim()}
+                disabled={!newComment.trim() || isSubmitting}
+                className={`
+                rounded-full px-5 py-1.5 text-[16px] font-medium transition-all
+                ${!newComment.trim() || isSubmitting
+                    ? 'bg-[#E5E5E5] text-[#9D9D9D] cursor-not-allowed'
+                    : 'bg-[#EFE6FC] text-[#6201E0] border-2 border-[#6201E0] hover:bg-[#DED3F5] active:scale-95'
+                  }
+              `}
               >
                 {isSubmitting ? '등록 중...' : '등록'}
               </button>
@@ -309,7 +324,7 @@ export default function CommunityDetailPage() {
             댓글 {post.comment_count}개
           </div>
 
-          <button 
+          <button
             className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
             onClick={handleSortToggle}
           >
@@ -388,21 +403,37 @@ export default function CommunityDetailPage() {
       {/* 댓글 삭제 확인 팝업 */}
       {deleteCommentId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="w-[428px] h-[165px] rounded-[20px] bg-white p-8 shadow-xl border border-[#E5E5E5]">
-            <h2 className="mb-6 text-center text-[20px] font-bold text-[#121212]">
+          <div className="w-[428px] h-[165px] rounded-[40px] bg-white p-10 shadow-xl border border-[#E5E5E5]">
+            <h2 className="mb-10 text-left text-[16px] font-regular text-[#303030]">
               댓글을 삭제하시겠습니까?
             </h2>
-            
-            <div className="flex gap-3">
+
+            <div className="flex justify-end gap-4">
               <button
                 onClick={() => setDeleteCommentId(null)}
-                className="flex-1 rounded-full bg-[#E8E0F5] py-3 text-[16px] font-medium text-[#6201E0] hover:bg-[#D8CEEB] transition-colors"
+                className="
+                  w-[76px] h-[42px]
+                  rounded-full
+                  bg-[#EFE6FC]
+                  text-[16px] font-medium text-[#4E01B3]
+                  flex items-center justify-center
+                  hover:bg-[#E1D2FA]
+                  transition-colors
+                "
               >
                 취소
               </button>
               <button
                 onClick={() => handleDeleteComment(deleteCommentId)}
-                className="flex-1 rounded-full bg-[#6201E0] py-3 text-[16px] font-medium text-white hover:bg-[#5001C0] transition-colors"
+                className="
+                  w-[76px] h-[42px]
+                  rounded-full
+                  bg-[#6201E0]
+                  text-[16px] font-medium text-white
+                  flex items-center justify-center
+                  hover:bg-[#5200BE]
+                  transition-colors
+                "
               >
                 확인
               </button>
