@@ -400,15 +400,15 @@ export default function CommunityDetailPage() {
         </ul>
       </div>
 
-      {/* 댓글 삭제 확인 팝업 */}
+{/* 댓글 삭제 확인 팝업 */}
       {deleteCommentId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="w-[428px] h-[165px] rounded-[40px] bg-white p-10 shadow-xl border border-[#E5E5E5]">
-            <h2 className="mb-10 text-left text-[16px] font-regular text-[#303030]">
+          <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
+            <h2 className="text-left text-[16px] font-regular text-[#303030]">
               댓글을 삭제하시겠습니까?
             </h2>
 
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-end gap-3 mt-auto -mb-4">
               <button
                 onClick={() => setDeleteCommentId(null)}
                 className="
