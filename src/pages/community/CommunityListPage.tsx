@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
+import { useInfiniteScroll } from '../../hooks'
 import type {
   CommunityCategory,
   CommunityPostListItem,
@@ -75,8 +76,6 @@ export default function CommunityListPage() {
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   
-  const observerRef = useRef<HTMLDivElement>(null)
-
   const [filter, setFilter] = useState<SearchFilterOption>('title_or_content')
   const [keyword, setKeyword] = useState('')
 
@@ -156,27 +155,12 @@ export default function CommunityListPage() {
     fetchPosts(1, true)
   }, [selectedCategoryId, keyword, filter, sortKey])
 
-  // Intersection Observer 설정
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoading && hasMore) {
-          fetchPosts(page + 1)
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (observerRef.current) {
-      observer.observe(observerRef.current)
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current)
-      }
-    }
-  }, [isLoading, hasMore, page])
+  // 무한 스크롤 커스텀 훅 적용
+  const observerRef = useInfiniteScroll({
+    onIntersect: () => fetchPosts(page + 1),
+    enabled: hasMore,
+    isLoading: isLoading,
+  })
 
   const onSubmitSearch = () => {
     // keyword 상태가 변경되었을 때 useEffect가 트리거되도록 처리

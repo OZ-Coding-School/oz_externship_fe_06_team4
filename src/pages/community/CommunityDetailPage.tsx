@@ -9,6 +9,7 @@ import {
   unlikeCommunityPost,
   isLoggedIn,
 } from './../../api/api'
+import { useInfiniteScroll } from './../../hooks'
 import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
@@ -68,7 +69,13 @@ export default function CommunityDetailPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const observerRef = useRef<HTMLDivElement>(null)
+
+  // 무한 스크롤 커스텀 훅 적용
+  const observerRef = useInfiniteScroll({
+    onIntersect: () => loadMoreComments(),
+    enabled: hasMore,
+    isLoading: isLoadingMore,
+  })
 
   // 댓글 작성
   const [newComment, setNewComment] = useState('')
@@ -191,28 +198,6 @@ export default function CommunityDetailPage() {
       setIsLoadingMore(false)
     }
   }
-
-  // Intersection Observer 설정
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !isLoadingMore && hasMore) {
-          loadMoreComments()
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (observerRef.current) {
-      observer.observe(observerRef.current)
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current)
-      }
-    }
-  }, [isLoadingMore, hasMore, page])
 
   // 댓글 작성자들로부터 유저 목록 추출
   const getCommentAuthors = () => {
