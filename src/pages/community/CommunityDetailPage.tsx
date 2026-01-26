@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import {
   getCommunityPostDetail,
   getCommunityComments,
@@ -12,7 +13,47 @@ import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
 const MAX_COMMENT_LENGTH = 500
-const COMMENTS_PER_PAGE = 10 // 한 번에 로드할 댓글 수
+const COMMENTS_PER_PAGE = 10
+
+// 로딩 애니메이션 컴포넌트
+const LoadingDots = () => {
+  const dotVariants = {
+    initial: { y: 0 },
+    animate: { y: -10 }
+  }
+
+  const containerVariants = {
+    initial: {},
+    animate: {
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  }
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+      className="flex items-center justify-center gap-2"
+    >
+      {[0, 1, 2].map((index) => (
+        <motion.div
+          key={index}
+          variants={dotVariants}
+          transition={{
+            duration: 0.5,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut"
+          }}
+          className="w-3 h-3 rounded-full bg-[#6201E0]"
+        />
+      ))}
+    </motion.div>
+  )
+}
 
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -614,10 +655,8 @@ export default function CommunityDetailPage() {
               
               {/* 무한 스크롤 트리거 */}
               {hasMore && (
-                <div ref={observerRef} className="py-4 text-center">
-                  <div className="text-[#9D9D9D]">
-                    {isLoadingMore ? '댓글을 불러오는 중...' : ''}
-                  </div>
+                <div ref={observerRef} className="py-8 text-center">
+                  {isLoadingMore && <LoadingDots />}
                 </div>
               )}
             </>
