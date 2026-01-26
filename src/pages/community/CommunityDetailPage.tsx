@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   getCommunityPostDetail,
@@ -37,8 +37,50 @@ export default function CommunityDetailPage() {
   // 댓글 삭제 팝업
   const [deleteCommentId, setDeleteCommentId] = useState<number | null>(null)
 
+  // 멘션 기능
+  const [showMentionModal, setShowMentionModal] = useState(false)
+  const [mentionSearch, setMentionSearch] = useState('')
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 })
+  const [cursorPosition, setCursorPosition] = useState(0)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mentionModalRef = useRef<HTMLDivElement>(null)
+
+  // 실시간 시간 업데이트
+  const [currentTime, setCurrentTime] = useState(Date.now())
+
   // 로그인 상태
   const loggedIn = isLoggedIn()
+
+  // 1분마다 시간 업데이트
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now())
+    }, 60000) // 60초마다 업데이트
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // 멘션 모달 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mentionModalRef.current &&
+        !mentionModalRef.current.contains(event.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
+      ) {
+        setShowMentionModal(false)
+      }
+    }
+
+    if (showMentionModal) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMentionModal])
 
   useEffect(() => {
     if (!postId) {
@@ -72,10 +114,53 @@ export default function CommunityDetailPage() {
     fetchData()
   }, [postId])
 
-  // 시간 표시 포맷팅
+  // 댓글 작성자들로부터 유저 목록 추출
+  const getCommentAuthors = () => {
+    const authors = new Map()
+    
+    // 게시글 작성자 추가
+    if (post) {
+      authors.set(post.author.id, {
+        id: post.author.id,
+        nickname: post.author.nickname,
+        profile_img_url: post.author.profile_img_url
+      })
+    }
+    
+    // 댓글 작성자들 추가
+    comments.forEach(comment => {
+      if (!authors.has(comment.author.id)) {
+        authors.set(comment.author.id, {
+          id: comment.author.id,
+          nickname: comment.author.nickname,
+          profile_img_url: comment.author.profile_img_url
+        })
+      }
+      
+      // 댓글에 태그된 유저들도 추가 (타입에 tagged_users가 있는 경우)
+      const commentWithTags = comment as CommunityComment & { 
+        tagged_users?: Array<{ id: number; nickname: string }> 
+      }
+      if (commentWithTags.tagged_users && commentWithTags.tagged_users.length > 0) {
+        commentWithTags.tagged_users.forEach(taggedUser => {
+          if (!authors.has(taggedUser.id)) {
+            authors.set(taggedUser.id, {
+              id: taggedUser.id,
+              nickname: taggedUser.nickname,
+              profile_img_url: null // tagged_users에는 profile_img_url이 없을 수 있음
+            })
+          }
+        })
+      }
+    })
+    
+    return Array.from(authors.values())
+  }
+
+  // 시간 표시 포맷팅 (실시간 반영)
   const formatTimeAgo = (createdAt: string) => {
     const hours = Math.floor(
-      (Date.now() - new Date(createdAt).getTime()) / 1000 / 60 / 60
+      (currentTime - new Date(createdAt).getTime()) / 1000 / 60 / 60
     )
 
     if (hours < 1) return '방금 전'
@@ -90,7 +175,7 @@ export default function CommunityDetailPage() {
   // 좋아요 토글
   const handleLikeToggle = async () => {
     if (!loggedIn) {
-      if (confirm('로그인이 필요한 기능입니다. 로그인 하시겠습니까?')) {
+      if (window.confirm('로그인이 필요한 기능입니다. 로그인 하시겠습니까?')) {
         navigate('/login', { state: { from: `/community/${postId}` } })
       }
       return
@@ -108,25 +193,83 @@ export default function CommunityDetailPage() {
       }
     } catch (err) {
       console.error('좋아요 처리 실패:', err)
-      alert('좋아요 처리에 실패했습니다.')
+      window.alert('좋아요 처리에 실패했습니다.')
     }
   }
+
+  // 댓글 입력 처리 (멘션 기능 포함)
+  const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value
+    const cursorPos = e.target.selectionStart
+
+    setNewComment(value)
+    setCursorPosition(cursorPos)
+
+    // @ 입력 감지
+    const textBeforeCursor = value.slice(0, cursorPos)
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@')
+
+    if (lastAtIndex !== -1) {
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1)
+      
+      // @와 커서 사이에 공백이나 다른 @가 없는 경우만 모달 표시
+      if (!textAfterAt.includes(' ') && !textAfterAt.includes('@')) {
+        setMentionSearch(textAfterAt)
+        setShowMentionModal(true)
+      } else {
+        setShowMentionModal(false)
+      }
+    } else {
+      setShowMentionModal(false)
+    }
+  }
+
+  // 멘션 선택
+  const handleSelectMention = (user: { id: number; nickname: string; profile_img_url: string | null }) => {
+    const textBeforeCursor = newComment.slice(0, cursorPosition)
+    const textAfterCursor = newComment.slice(cursorPosition)
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@')
+
+    // @부터 커서까지의 텍스트를 선택한 유저의 닉네임으로 교체
+    const newText = 
+      textBeforeCursor.slice(0, lastAtIndex) + 
+      `@${user.nickname} ` + 
+      textAfterCursor
+
+    setNewComment(newText)
+    setShowMentionModal(false)
+    setMentionSearch('')
+
+    // 포커스 복귀
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = lastAtIndex + user.nickname.length + 2 // @ + 닉네임 + 공백
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }
+
+  // 필터링된 유저 목록 (댓글 작성자들만)
+  const filteredUsers = getCommentAuthors().filter(user =>
+    user.nickname.toLowerCase().includes(mentionSearch.toLowerCase())
+  )
 
   // 댓글 작성
   const handleCommentSubmit = async () => {
     if (!loggedIn) {
-      alert('로그인이 필요합니다.')
+      window.alert('로그인이 필요합니다.')
       navigate('/login', { state: { from: `/community/${postId}` } })
       return
     }
 
     if (!newComment.trim()) {
-      alert('댓글 내용을 입력해주세요.')
+      window.alert('댓글 내용을 입력해주세요.')
       return
     }
 
     if (newComment.length > MAX_COMMENT_LENGTH) {
-      alert(`댓글은 최대 ${MAX_COMMENT_LENGTH}자까지 작성 가능합니다.`)
+      window.alert(`댓글은 최대 ${MAX_COMMENT_LENGTH}자까지 작성 가능합니다.`)
       return
     }
 
@@ -144,13 +287,12 @@ export default function CommunityDetailPage() {
       setPost(postData)
 
       setNewComment('')
-      alert('댓글이 등록되었습니다.')
+      window.alert('댓글이 등록되었습니다.')
 
-      // 약간의 딜레이 후 클릭 상태 초기화
       setTimeout(() => setIsSubmitClicked(false), 200)
     } catch (err) {
       console.error('댓글 작성 실패:', err)
-      alert('댓글 작성에 실패했습니다.')
+      window.alert('댓글 작성에 실패했습니다.')
       setIsSubmitClicked(false)
     } finally {
       setIsSubmitting(false)
@@ -160,22 +302,17 @@ export default function CommunityDetailPage() {
   // 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
     try {
-      // API 호출 구현 필요
-      // await deleteCommunityComment(Number(postId), commentId)
-
-      // 임시: 로컬에서 삭제
       setComments(prev => prev.filter(c => c.id !== commentId))
 
-      // 댓글 개수 업데이트
       if (post) {
         setPost({ ...post, comment_count: post.comment_count - 1 })
       }
 
       setDeleteCommentId(null)
-      alert('댓글이 삭제되었습니다.')
+      window.alert('댓글이 삭제되었습니다.')
     } catch (err) {
       console.error('댓글 삭제 실패:', err)
-      alert('댓글 삭제에 실패했습니다.')
+      window.alert('댓글 삭제에 실패했습니다.')
     }
   }
 
@@ -194,7 +331,7 @@ export default function CommunityDetailPage() {
   // 공유하기
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href)
-    alert('링크가 복사되었습니다.')
+    window.alert('링크가 복사되었습니다.')
   }
 
   if (loading) return <div className="py-20 text-center">로딩 중...</div>
@@ -287,11 +424,40 @@ export default function CommunityDetailPage() {
       {loggedIn && (
         <div className="mb-6 flex justify-center">
           <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4 focus-within:border-[#6201E0] transition-colors">
+            {/* 멘션 모달 - textarea 안에 위치 */}
+            {showMentionModal && filteredUsers.length > 0 && (
+              <div
+                ref={mentionModalRef}
+                className="absolute bottom-full mb-2 left-0 z-50 w-[300px] max-h-[200px] overflow-y-auto bg-white/95 backdrop-blur-sm rounded-lg shadow-xl border border-[#E5E5E5]"
+              >
+                {filteredUsers.map(user => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleSelectMention(user)}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#F5EFFF] transition-colors text-left border-b border-[#F5F5F5] last:border-b-0"
+                  >
+                    <img
+                      src={user.profile_img_url || DEFAULT_AVATAR}
+                      className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                      alt={user.nickname}
+                      onError={(e) => {
+                        e.currentTarget.src = DEFAULT_AVATAR
+                      }}
+                    />
+                    <span className="text-[14px] font-medium text-[#121212]">
+                      {user.nickname}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            
             <textarea
+              ref={textareaRef}
               className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none"
               placeholder="개인정보를 공유 및 요청하거나, 명예 회손, 무단 광고, 불법 정보 유포시 모니터링 후 삭제될 수 있습니다."
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={handleCommentChange}
               maxLength={MAX_COMMENT_LENGTH}
             />
             <div className="absolute bottom-4 right-4 flex items-center gap-3">
@@ -377,11 +543,7 @@ export default function CommunityDetailPage() {
                       <>
                         <span className="text-[16px] text-[#9D9D9D]">|</span>
                         <button
-                          onClick={() => {
-                            console.log('Comment author:', comment.author)
-                            console.log('is_me:', (comment.author as any).is_me)
-                            setDeleteCommentId(comment.id)
-                          }}
+                          onClick={() => setDeleteCommentId(comment.id)}
                           className="text-[16px] text-[#6201E0] hover:underline"
                         >
                           삭제
@@ -400,7 +562,7 @@ export default function CommunityDetailPage() {
         </ul>
       </div>
 
-{/* 댓글 삭제 확인 팝업 */}
+      {/* 댓글 삭제 확인 팝업 */}
       {deleteCommentId !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
