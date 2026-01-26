@@ -44,118 +44,6 @@ function ChevronRightIcon() {
   )
 }
 
-/** 페이지네이션 아이콘들  */
-function PageDoubleLeftIcon({ disabled }: { disabled?: boolean }) {
-  const stroke = disabled ? '#BDBDBD' : '#4D4D4D'
-  return (
-    <div className="flex items-center">
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M11.5 16L5.5 10L11.5 4"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-      <svg
-        className="-ml-[10px]"
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M13 16L7 10L13 4"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  )
-}
-function PageLeftIcon({ disabled }: { disabled?: boolean }) {
-  const stroke = disabled ? '#BDBDBD' : '#4D4D4D'
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M13 16L7 10L13 4"
-        stroke={stroke}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-function PageRightIcon({ disabled }: { disabled?: boolean }) {
-  const stroke = disabled ? '#BDBDBD' : '#4D4D4D'
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M7 16L13 10L7 4"
-        stroke={stroke}
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
-function PageDoubleRightIcon({ disabled }: { disabled?: boolean }) {
-  const stroke = disabled ? '#BDBDBD' : '#4D4D4D'
-  return (
-    <div className="flex items-center">
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M7 16L13 10L7 4"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-      <svg
-        className="-ml-[10px]"
-        width="20"
-        height="20"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M5.5 16L11.5 10L5.5 4"
-          stroke={stroke}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  )
-}
-
 const ALL_CATEGORY_ID = 0 as const
 
 // 정렬 옵션(피그마 기준)
@@ -180,7 +68,14 @@ const SORT_PARAM: Record<SortKey, string> = {
 
 export default function CommunityListPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(6)
+  
+  // 무한 스크롤 상태
+  const [posts, setPosts] = useState<CommunityPostListItem[]>([])
   const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  const observerRef = useRef<HTMLDivElement>(null)
 
   const [filter, setFilter] = useState<SearchFilterOption>('title_or_content')
   const [keyword, setKeyword] = useState('')
@@ -219,15 +114,14 @@ export default function CommunityListPage() {
     return map
   }, [categories])
 
-  const { data: postsPage, isLoading } = useQuery({
-    queryKey: [
-      'community',
-      'posts',
-      { page, selectedCategoryId, keyword, filter, sortKey },
-    ],
-    queryFn: async () => {
+  // 데이터 로드 함수
+  const fetchPosts = async (targetPage: number, isInitial = false) => {
+    if (isLoading || (!hasMore && !isInitial)) return
+
+    try {
+      setIsLoading(true)
       const params = {
-        page,
+        page: targetPage,
         page_size: 10,
         search: keyword.trim() ? keyword.trim() : undefined,
         search_filter: keyword.trim() ? filter : undefined,
@@ -237,30 +131,60 @@ export default function CommunityListPage() {
             : selectedCategoryId,
         sort: SORT_PARAM[sortKey],
       }
-      return (await communityApi.getPosts(
+
+      const res = (await communityApi.getPosts(
         params as any
       )) as PaginatedResponse<CommunityPostListItem>
-    },
-  })
 
-  const posts = postsPage?.results ?? []
-  const totalCount = postsPage?.count ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalCount / 10))
+      if (isInitial) {
+        setPosts(res.results || [])
+      } else {
+        setPosts((prev) => [...prev, ...(res.results || [])])
+      }
 
-  const onSubmitSearch = () => setPage(1)
+      setHasMore(res.next !== null)
+      setPage(targetPage)
+    } catch (err) {
+      console.error('Failed to fetch posts:', err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 필터나 카테고리 변경 시 초기화
+  useEffect(() => {
+    fetchPosts(1, true)
+  }, [selectedCategoryId, keyword, filter, sortKey])
+
+  // Intersection Observer 설정
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && hasMore) {
+          fetchPosts(page + 1)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current)
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current)
+      }
+    }
+  }, [isLoading, hasMore, page])
+
+  const onSubmitSearch = () => {
+    // keyword 상태가 변경되었을 때 useEffect가 트리거되도록 처리
+    // 이미 useEffect[keyword]가 있으므로 setKeyword('') -> setKeyword(val) 식이면 되지만
+    // 여기서는 단순히 trigger를 위해 keyword 상태만 확인
+  }
+  
   const onClickWrite = () => alert('글쓰기(추후 라우팅 연결)')
-
-  const blockStart = Math.floor((page - 1) / 10) * 10 + 1
-  const blockEnd = Math.min(blockStart + 9, totalPages)
-  const pages = Array.from(
-    { length: blockEnd - blockStart + 1 },
-    (_, i) => blockStart + i
-  )
-
-  const isFirstPage = page <= 1
-  const isLastPage = page >= totalPages
-  const isFirstBlock = blockStart === 1
-  const isLastBlock = blockEnd === totalPages
 
   return (
     <div className="w-full bg-white">
@@ -298,7 +222,6 @@ export default function CommunityListPage() {
                   type="button"
                   onClick={() => {
                     setSelectedCategoryId(c.id)
-                    setPage(1)
                   }}
                   className={[
                     'px-[10px] py-[6px]',
@@ -354,7 +277,6 @@ export default function CommunityListPage() {
                       onClick={() => {
                         setSortKey(k)
                         setSortOpen(false)
-                        setPage(1)
                       }}
                       className={[
                         'w-full rounded-[10px] px-[14px] py-[10px] text-left text-[16px] font-semibold',
@@ -374,91 +296,36 @@ export default function CommunityListPage() {
 
         <div className="mt-[16px] h-[1px] w-full bg-[#DCDCDC]" />
 
-        <div className="mt-[10px]">
-          {isLoading ? (
-            <div className="px-[24px] py-[24px] text-[14px] text-[#777777]">
-              불러오는 중...
-            </div>
-          ) : posts.length === 0 ? (
+        <div className="mt-[10px] pb-20">
+          {posts.length === 0 && !isLoading ? (
             <div className="px-[24px] py-[24px] text-[14px] text-[#777777]">
               게시글이 없습니다.
             </div>
           ) : (
-            posts.map((item) => (
-              <CommunityListItem
-                key={item.id}
-                item={item}
-                categoryName={
-                  categoryNameById.get(item.category_id) ?? '카테고리'
-                }
-              />
-            ))
-          )}
-        </div>
-
-        <div className="mt-[18px] flex h-[85px] w-full items-center justify-center gap-[12px]">
-          <button
-            type="button"
-            onClick={() => setPage(1)}
-            disabled={isFirstBlock}
-            className="flex h-[32px] items-center justify-center"
-            aria-label="처음 페이지"
-          >
-            <PageDoubleLeftIcon disabled={isFirstBlock} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={isFirstPage}
-            className="flex h-[32px] items-center justify-center"
-            aria-label="이전 페이지"
-          >
-            <PageLeftIcon disabled={isFirstPage} />
-          </button>
-
-          <div className="flex items-center gap-[20px]">
-            {pages.map((p) => {
-              const active = p === page
-              return (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPage(p)}
-                  className={
-                    active
-                      ? 'flex h-[32px] w-[32px] items-center justify-center rounded-[10px] bg-[#6D28D9] text-[14px] font-semibold text-white'
-                      : 'flex h-[32px] w-[32px] items-center justify-center rounded-[10px] text-[14px] text-[#BDBDBD] hover:bg-[#EEE6FF] hover:text-[#6D28D9]'
+            <>
+              {posts.map((item) => (
+                <CommunityListItem
+                  key={item.id}
+                  item={item}
+                  categoryName={
+                    categoryNameById.get(item.category_id) ?? '카테고리'
                   }
-                  aria-current={active ? 'page' : undefined}
-                >
-                  {p}
-                </button>
-              )
-            })}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={isLastPage}
-            className="flex h-[32px] items-center justify-center"
-            aria-label="다음 페이지"
-          >
-            <PageRightIcon disabled={isLastPage} />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPage(totalPages)}
-            disabled={isLastBlock}
-            className="flex h-[32px] items-center justify-center"
-            aria-label="마지막 페이지"
-          >
-            <PageDoubleRightIcon disabled={isLastBlock} />
-          </button>
+                />
+              ))}
+              
+              {/* 무한 스크롤 트리거 */}
+              {hasMore && (
+                <div ref={observerRef} className="py-10 text-center">
+                  <div className="text-[14px] text-[#777777]">
+                    {isLoading ? '게시글을 불러오는 중...' : ''}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
