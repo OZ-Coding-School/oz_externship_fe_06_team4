@@ -12,6 +12,7 @@ import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
 const MAX_COMMENT_LENGTH = 500
+const COMMENTS_PER_PAGE = 10 // 한 번에 로드할 댓글 수
 
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
@@ -21,6 +22,12 @@ export default function CommunityDetailPage() {
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // 무한 스크롤
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const observerRef = useRef<HTMLDivElement>(null)
 
   // 댓글 작성
   const [newComment, setNewComment] = useState('')
@@ -40,7 +47,6 @@ export default function CommunityDetailPage() {
   // 멘션 기능
   const [showMentionModal, setShowMentionModal] = useState(false)
   const [mentionSearch, setMentionSearch] = useState('')
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 })
   const [cursorPosition, setCursorPosition] = useState(0)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const mentionModalRef = useRef<HTMLDivElement>(null)
@@ -55,7 +61,7 @@ export default function CommunityDetailPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(Date.now())
-    }, 60000) // 60초마다 업데이트
+    }, 60000)
 
     return () => clearInterval(interval)
   }, [])
@@ -82,6 +88,7 @@ export default function CommunityDetailPage() {
     }
   }, [showMentionModal])
 
+  // 초기 데이터 로드
   useEffect(() => {
     if (!postId) {
       setLoading(false)
@@ -95,12 +102,19 @@ export default function CommunityDetailPage() {
         setError(null)
 
         const postData = await getCommunityPostDetail(Number(postId))
-        const commentData = await getCommunityComments(Number(postId))
+        const commentData = await getCommunityComments(Number(postId), {
+          page: 1,
+          page_size: COMMENTS_PER_PAGE
+        })
 
         setPost(postData)
         setComments(commentData.results || [])
         setIsLiked(postData.is_liked || false)
         setLikeCount(postData.like_count || 0)
+        
+        // 더 불러올 댓글이 있는지 확인
+        setHasMore(commentData.next !== null)
+        setPage(1)
       } catch (err) {
         console.error('데이터 로딩 실패:', err)
         setError('게시글을 불러오는데 실패했습니다.')
@@ -114,11 +128,55 @@ export default function CommunityDetailPage() {
     fetchData()
   }, [postId])
 
+  // 추가 댓글 로드
+  const loadMoreComments = async () => {
+    if (isLoadingMore || !hasMore || !postId) return
+
+    try {
+      setIsLoadingMore(true)
+      const nextPage = page + 1
+      
+      const commentData = await getCommunityComments(Number(postId), {
+        page: nextPage,
+        page_size: COMMENTS_PER_PAGE
+      })
+
+      setComments(prev => [...prev, ...(commentData.results || [])])
+      setHasMore(commentData.next !== null)
+      setPage(nextPage)
+    } catch (err) {
+      console.error('댓글 로드 실패:', err)
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  // Intersection Observer 설정
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoadingMore && hasMore) {
+          loadMoreComments()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current)
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current)
+      }
+    }
+  }, [isLoadingMore, hasMore, page])
+
   // 댓글 작성자들로부터 유저 목록 추출
   const getCommentAuthors = () => {
     const authors = new Map()
     
-    // 게시글 작성자 추가
     if (post) {
       authors.set(post.author.id, {
         id: post.author.id,
@@ -127,7 +185,6 @@ export default function CommunityDetailPage() {
       })
     }
     
-    // 댓글 작성자들 추가
     comments.forEach(comment => {
       if (!authors.has(comment.author.id)) {
         authors.set(comment.author.id, {
@@ -137,7 +194,6 @@ export default function CommunityDetailPage() {
         })
       }
       
-      // 댓글에 태그된 유저들도 추가 (타입에 tagged_users가 있는 경우)
       const commentWithTags = comment as CommunityComment & { 
         tagged_users?: Array<{ id: number; nickname: string }> 
       }
@@ -147,7 +203,7 @@ export default function CommunityDetailPage() {
             authors.set(taggedUser.id, {
               id: taggedUser.id,
               nickname: taggedUser.nickname,
-              profile_img_url: null // tagged_users에는 profile_img_url이 없을 수 있음
+              profile_img_url: null
             })
           }
         })
@@ -157,7 +213,7 @@ export default function CommunityDetailPage() {
     return Array.from(authors.values())
   }
 
-  // 시간 표시 포맷팅 (실시간 반영)
+  // 시간 표시 포맷팅
   const formatTimeAgo = (createdAt: string) => {
     const hours = Math.floor(
       (currentTime - new Date(createdAt).getTime()) / 1000 / 60 / 60
@@ -197,7 +253,7 @@ export default function CommunityDetailPage() {
     }
   }
 
-  // 댓글 입력 처리 (멘션 기능 포함)
+  // 댓글 입력 처리
   const handleCommentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     const cursorPos = e.target.selectionStart
@@ -205,14 +261,12 @@ export default function CommunityDetailPage() {
     setNewComment(value)
     setCursorPosition(cursorPos)
 
-    // @ 입력 감지
     const textBeforeCursor = value.slice(0, cursorPos)
     const lastAtIndex = textBeforeCursor.lastIndexOf('@')
 
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1)
       
-      // @와 커서 사이에 공백이나 다른 @가 없는 경우만 모달 표시
       if (!textAfterAt.includes(' ') && !textAfterAt.includes('@')) {
         setMentionSearch(textAfterAt)
         setShowMentionModal(true)
@@ -230,7 +284,6 @@ export default function CommunityDetailPage() {
     const textAfterCursor = newComment.slice(cursorPosition)
     const lastAtIndex = textBeforeCursor.lastIndexOf('@')
 
-    // @부터 커서까지의 텍스트를 선택한 유저의 닉네임으로 교체
     const newText = 
       textBeforeCursor.slice(0, lastAtIndex) + 
       `@${user.nickname} ` + 
@@ -240,17 +293,16 @@ export default function CommunityDetailPage() {
     setShowMentionModal(false)
     setMentionSearch('')
 
-    // 포커스 복귀
     setTimeout(() => {
       if (textareaRef.current) {
-        const newCursorPos = lastAtIndex + user.nickname.length + 2 // @ + 닉네임 + 공백
+        const newCursorPos = lastAtIndex + user.nickname.length + 2
         textareaRef.current.focus()
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
     }, 0)
   }
 
-  // 필터링된 유저 목록 (댓글 작성자들만)
+  // 필터링된 유저 목록
   const filteredUsers = getCommentAuthors().filter(user =>
     user.nickname.toLowerCase().includes(mentionSearch.toLowerCase())
   )
@@ -278,11 +330,15 @@ export default function CommunityDetailPage() {
       setIsSubmitClicked(true)
       await createCommunityComment(Number(postId), { content: newComment })
 
-      // 댓글 목록 새로고침
-      const commentData = await getCommunityComments(Number(postId))
+      // 첫 페이지만 새로고침
+      const commentData = await getCommunityComments(Number(postId), {
+        page: 1,
+        page_size: COMMENTS_PER_PAGE
+      })
       setComments(commentData.results || [])
+      setHasMore(commentData.next !== null)
+      setPage(1)
 
-      // 게시글 정보도 업데이트 (댓글 개수 반영)
       const postData = await getCommunityPostDetail(Number(postId))
       setPost(postData)
 
@@ -420,11 +476,11 @@ export default function CommunityDetailPage() {
         <hr className="w-[944px] border-[#CECECE]" />
       </div>
 
-      {/* 댓글 작성 영역 - 로그인한 경우만 표시 */}
+      {/* 댓글 작성 영역 */}
       {loggedIn && (
         <div className="mb-6 flex justify-center">
           <div className="relative w-[944px] h-[120px] rounded-[12px] border border-[#CECECE] bg-white p-4 focus-within:border-[#6201E0] transition-colors">
-            {/* 멘션 모달 - textarea 안에 위치 */}
+            {/* 멘션 모달 */}
             {showMentionModal && filteredUsers.length > 0 && (
               <div
                 ref={mentionModalRef}
@@ -512,52 +568,59 @@ export default function CommunityDetailPage() {
               첫 댓글을 남겨보세요!
             </li>
           ) : (
-            sortedComments.map((comment, index) => (
-              <li key={comment.id} className="relative flex gap-3 py-6">
-                {/* 댓글 구분선 */}
-                {index !== 0 && (
-                  <span className="absolute left-0 right-0 top-0 border-t border-[#E5E5E5]" />
-                )}
+            <>
+              {sortedComments.map((comment, index) => (
+                <li key={comment.id} className="relative flex gap-3 py-6">
+                  {index !== 0 && (
+                    <span className="absolute left-0 right-0 top-0 border-t border-[#E5E5E5]" />
+                  )}
 
-                {/* 프로필 */}
-                <img
-                  src={comment.author.profile_img_url || DEFAULT_AVATAR}
-                  className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
-                  alt={`${comment.author.nickname} 프로필`}
-                  onError={(e) => {
-                    e.currentTarget.src = DEFAULT_AVATAR
-                  }}
-                />
+                  <img
+                    src={comment.author.profile_img_url || DEFAULT_AVATAR}
+                    className="h-9 w-9 flex-shrink-0 rounded-full object-cover"
+                    alt={`${comment.author.nickname} 프로필`}
+                    onError={(e) => {
+                      e.currentTarget.src = DEFAULT_AVATAR
+                    }}
+                  />
 
-                {/* 댓글 내용 */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[16px] font-medium text-[#121212]">
-                      {comment.author.nickname}
-                    </span>
-                    <span className="text-[16px] text-[#9D9D9D]">
-                      {formatTimeAgo(comment.created_at)}
-                    </span>
-                    {/* 삭제 버튼 - 로그인한 경우 표시 (임시) */}
-                    {loggedIn && (
-                      <>
-                        <span className="text-[16px] text-[#9D9D9D]">|</span>
-                        <button
-                          onClick={() => setDeleteCommentId(comment.id)}
-                          className="text-[16px] text-[#6201E0] hover:underline"
-                        >
-                          삭제
-                        </button>
-                      </>
-                    )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[16px] font-medium text-[#121212]">
+                        {comment.author.nickname}
+                      </span>
+                      <span className="text-[16px] text-[#9D9D9D]">
+                        {formatTimeAgo(comment.created_at)}
+                      </span>
+                      {loggedIn && (
+                        <>
+                          <span className="text-[16px] text-[#9D9D9D]">|</span>
+                          <button
+                            onClick={() => setDeleteCommentId(comment.id)}
+                            className="text-[16px] text-[#6201E0] hover:underline"
+                          >
+                            삭제
+                          </button>
+                        </>
+                      )}
+                    </div>
+
+                    <p className="mt-1 break-words text-[16px] text-[#4D4D4D]">
+                      {comment.content}
+                    </p>
                   </div>
-
-                  <p className="mt-1 break-words text-[16px] text-[#4D4D4D]">
-                    {comment.content}
-                  </p>
+                </li>
+              ))}
+              
+              {/* 무한 스크롤 트리거 */}
+              {hasMore && (
+                <div ref={observerRef} className="py-4 text-center">
+                  <div className="text-[#9D9D9D]">
+                    {isLoadingMore ? '댓글을 불러오는 중...' : ''}
+                  </div>
                 </div>
-              </li>
-            ))
+              )}
+            </>
           )}
         </ul>
       </div>
