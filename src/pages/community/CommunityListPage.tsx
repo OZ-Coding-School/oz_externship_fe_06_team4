@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
@@ -68,6 +69,7 @@ const SORT_PARAM: Record<SortKey, string> = {
 }
 
 export default function CommunityListPage() {
+  const navigate = useNavigate()
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(6)
   
   // 무한 스크롤 상태
@@ -168,7 +170,7 @@ export default function CommunityListPage() {
     // 여기서는 단순히 trigger를 위해 keyword 상태만 확인
   }
   
-  const onClickWrite = () => alert('글쓰기(추후 라우팅 연결)')
+  const onClickWrite = () => navigate('/community/new')
 
   return (
     <div className="w-full bg-white">
