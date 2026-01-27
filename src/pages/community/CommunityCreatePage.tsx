@@ -4,25 +4,33 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-  Link,
-  Image as ImageIcon,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
-  List,
-  ListOrdered,
-  Undo,
-  Redo,
-  Baseline,
-  Highlighter,
-  Eraser,
-  ChevronDown,
+  ChevronDown, // Used in dropdowns? Check usage. actually List Group doesn't use it anymore, but keep if needed elsewhere.
+  // Original List, ListOrdered, Align... removed as they are replaced.
 } from 'lucide-react'
+import {
+  UndoIcon,
+  RedoIcon,
+  ToolbarBoldIcon,
+  ToolbarItalicIcon,
+  ToolbarUnderlineIcon,
+  ToolbarStrikeIcon,
+  ToolbarColorBoxIcon,
+  ToolbarTextIcon, 
+  ToolbarLinkIcon,
+  ToolbarImageIcon,
+  ToolbarEraserIcon,
+  ToolbarArrowIcon,
+  // New Bottom Row Icons
+  ToolbarListGroupIcon,
+  ToolbarAlignLeftIcon,
+  ToolbarAlignCenterIcon,
+  ToolbarAlignRightIcon,
+  ToolbarAlignJustifyIcon,
+  ToolbarLineHeightIcon,
+  ToolbarOutdentIcon,
+  ToolbarIndentIcon
+} from '../../components/icons/CustomIcons'
+
 import { api } from '../../api/api'
 import type { CommunityCategory, CreateCommunityPostResponse } from '../../types'
 
@@ -73,13 +81,15 @@ export default function CommunityCreatePage() {
 
   // --- UI States ---
   const [fontSizeOpen, setFontSizeOpen] = useState(false)
-  const [fontFamilyOpen, setFontFamilyOpen] = useState(false)
+  const [textColorOpen, setTextColorOpen] = useState(false)
   const [currentFontSize, setCurrentFontSize] = useState('16')
+  const [currentTextColor, setCurrentTextColor] = useState('')
 
   // --- Refs ---
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const fontSizeRef = useRef<HTMLDivElement>(null)
+  const textColorRef = useRef<HTMLDivElement>(null)
   
   // --- History for Undo/Redo ---
   // historyStack[historyIndex] = currentContent
@@ -105,7 +115,9 @@ export default function CommunityCreatePage() {
       if (fontSizeRef.current && !fontSizeRef.current.contains(event.target as Node)) {
         setFontSizeOpen(false)
       }
-      // Add other dropdown refs if needed
+      if (textColorRef.current && !textColorRef.current.contains(event.target as Node)) {
+        setTextColorOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -189,10 +201,9 @@ export default function CommunityCreatePage() {
 
   // --- Toolbar Handlers ---
 
-  // A. 인라인 스타일
+  // A. Inline Styles
   const toggleWrapper = (prefix: string, suffix: string, placeholder = 'text') => {
     applyParams((sel) => {
-      
       if (sel.startsWith(prefix) && sel.endsWith(suffix)) {
         return { 
           text: sel.slice(prefix.length, -suffix.length),
@@ -214,14 +225,19 @@ export default function CommunityCreatePage() {
   const handleItalic = () => toggleWrapper('*', '*', 'Italic text')
   const handleUnderline = () => toggleWrapper('<u>', '</u>', 'Underlined text')
   const handleStrikethrough = () => toggleWrapper('~~', '~~', 'Strikethrough text')
-  const handleHighlight = () => toggleWrapper('<mark>', '</mark>', 'Highlighted text')
-  const handleInlineCode = () => toggleWrapper('`', '`', 'code')
+  // handleInlineCode removed as it is not used in the current UI design
   
-  // F. Font Size / Family
+  // F. Font Size / Color
   const handleFontSize = (size: string) => {
     setCurrentFontSize(size)
     toggleWrapper(`<span style="font-size:${size}px">`, '</span>', 'Text')
     setFontSizeOpen(false)
+  }
+
+  const handleTextColor = (color: string) => {
+    setCurrentTextColor(color)
+    toggleWrapper(`<span style="color:${color}">`, '</span>', 'Color Text')
+    setTextColorOpen(false)
   }
   
   // B. Link
@@ -272,8 +288,6 @@ export default function CommunityCreatePage() {
     if (!textarea) return
 
     const { start, end, value } = getSelectionInfo(textarea)
-    
-    // Find start and end of lines that contain selection
     let lineStart = value.lastIndexOf('\n', start - 1) + 1
     let lineEnd = value.indexOf('\n', end)
     if (lineEnd === -1) lineEnd = value.length
@@ -302,7 +316,6 @@ export default function CommunityCreatePage() {
   }
 
   const handleUnorderedList = () => toggleLinePrefix('- ')
-  // For ordered list, we could do 1. 2. 3. logic but simpler is just 1. for all
   const handleOrderedList = () => toggleLinePrefix('1. ')
   
   // D. Align (HTML Wrap)
@@ -310,15 +323,47 @@ export default function CommunityCreatePage() {
     toggleWrapper(`<div align="${align}">`, '</div>', 'Content')
   }
 
+  const handleLineHeight = () => {
+    const height = window.prompt('행간을 입력하세요 (예: 1.5, 200%)', '1.5')
+    if (!height) return
+    toggleWrapper(`<div style="line-height:${height}">`, '</div>', 'Line Height Content')
+  }
+
+  // Use toggleLinePrefix logic but specialized for adding/removing
+  const handleIndent = () => toggleLinePrefix('> ') // Increases indentation (Blockquote level)
+  
+  const handleOutdent = () => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const { start, end, value } = getSelectionInfo(textarea)
+    let lineStart = value.lastIndexOf('\n', start - 1) + 1
+    let lineEnd = value.indexOf('\n', end)
+    if (lineEnd === -1) lineEnd = value.length
+
+    const linesContent = value.substring(lineStart, lineEnd)
+    const lines = linesContent.split('\n')
+    
+    const newLines = lines.map(line => {
+      // Remove one level of blockquote or indentation
+      if (line.startsWith('> ')) return line.substring(2)
+      if (line.startsWith('>')) return line.substring(1)
+      if (line.startsWith('  ')) return line.substring(2) // Remove spaces if present
+      return line
+    })
+    
+    const newText = newLines.join('\n')
+    const res = replaceInfo(textarea, newText, lineStart, lineEnd)
+    updateContent(res.value)
+    
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(lineStart, lineStart + newText.length)
+    }, 0)
+  }
+
   const handleEraser = () => {
-    // Clear formatting ?? Hard to do perfectly in markdown/html mix without parsing.
-    // Simple implementation: Just delete selection content :P -> No, user expects style removal.
-    // Let's just reset selection to plain text if possible.
-    // For now, let's make it clear selection content.
-    // Or better, just alert limitation or try to strip tags (too complex for regex).
-    // Let's implement plain text replacement.
     applyParams((sel) => {
-      // Very naiive strip tags
       const stripped = sel.replace(/<[^>]*>|[*_~`]/g, '')
       return { text: stripped }
     })
@@ -363,15 +408,8 @@ export default function CommunityCreatePage() {
   return (
     <div className="flex w-full items-center justify-center py-[52px]">
       <div className="flex w-[944px] flex-col items-end gap-[52px]">
-        
         {/* Hidden File Input */}
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-        />
+        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
 
         {/* Header */}
         <div className="flex w-full flex-col items-start gap-5">
@@ -396,13 +434,9 @@ export default function CommunityCreatePage() {
                       }}
                       className="z-10 h-full w-full cursor-pointer appearance-none bg-transparent text-sm text-[#374151] outline-none"
                     >
-                      <option value="" disabled>
-                        카테고리 선택
-                      </option>
+                      <option value="" disabled>카테고리 선택</option>
                       {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </option>
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
                       ))}
                     </select>
                     <ChevronDown className="pointer-events-none absolute right-2.5 h-4 w-4 text-[#6B7280]" />
@@ -428,101 +462,126 @@ export default function CommunityCreatePage() {
         <div className="flex w-full flex-col items-end gap-[52px]">
           <div className="flex w-full flex-col overflow-visible rounded-[20px] border border-[#E5E7EB]">
             {/* Toolbar */}
-            <div className="sticky top-0 z-20 flex flex-wrap items-center justify-center gap-9 border-b border-[#E5E7EB] bg-white px-8 py-4 shadow-sm">
+            <div className="sticky top-0 z-20 flex flex-col items-center justify-center border-b border-[#E5E7EB] bg-white px-8 py-4 shadow-sm gap-4">
               
-              {/* Undo/Redo */}
-              <div className="flex items-center gap-7">
-                <button type="button" onClick={handleUndo} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]">
-                  <Undo className="h-6 w-6" />
-                </button>
-                <button type="button" onClick={handleRedo} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]">
-                  <Redo className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="h-7 w-px bg-[#E5E7EB]" />
-
-              {/* Font Controls */}
-              <div className="flex items-center gap-7">
-                <div className="flex items-center gap-3">
-                  {/* Font Family (Visual Only) */}
-                  <button
-                    type="button"
-                    className="flex h-6 items-center gap-3 rounded bg-[#F3F4F6] px-3 text-sm text-[#4B5563] cursor-not-allowed opacity-70"
-                    disabled
-                  >
-                    기본서체
-                    <ChevronDown className="h-4 w-4" />
+              {/* TOP ROW */}
+              <div className="flex w-full items-center justify-center gap-6">
+                {/* Undo/Redo */}
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={handleUndo} className="p-1 hover:bg-gray-100 rounded">
+                    <UndoIcon />
                   </button>
+                  <button type="button" onClick={handleRedo} className="p-1 hover:bg-gray-100 rounded">
+                    <RedoIcon />
+                  </button>
+                </div>
+
+                <div className="h-6 w-px bg-[#E5E7EB]" />
+
+                {/* Font Controls */}
+                <div className="flex items-center gap-2">
+                   <button type="button" className="flex h-8 items-center gap-2 rounded bg-[#F3F4F6] px-3 text-sm text-[#4B5563] cursor-not-allowed opacity-70" disabled>
+                     기본서체
+                     <ChevronDown className="h-4 w-4" />
+                   </button>
+                   
+                   <div className="relative" ref={fontSizeRef}>
+                     <button type="button" onClick={() => setFontSizeOpen(!fontSizeOpen)} className="flex h-8 items-center gap-2 rounded bg-[#F3F4F6] px-3 text-sm text-[#4B5563] hover:bg-gray-200">
+                       {currentFontSize}
+                       <ChevronDown className="h-4 w-4" />
+                     </button>
+                     {fontSizeOpen && (
+                       <div className="absolute top-full left-0 mt-1 w-20 rounded border border-gray-200 bg-white shadow-lg py-1 z-30">
+                         {['12', '14', '16', '18', '24', '32'].map(size => (
+                           <button key={size} className="block w-full px-4 py-1 text-left text-sm hover:bg-gray-100" onClick={() => handleFontSize(size)}>
+                             {size}
+                           </button>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+                </div>
+
+                <div className="h-6 w-px bg-[#E5E7EB]" />
+
+                {/* Formatting: B, I, U, S, ColorBox, Arrow, A */}
+                <div className="flex items-center gap-1">
+                  <button type="button" onClick={handleBold} className="p-1 hover:bg-gray-100 rounded"><ToolbarBoldIcon /></button>
+                  <button type="button" onClick={handleItalic} className="p-1 hover:bg-gray-100 rounded"><ToolbarItalicIcon /></button>
+                  <button type="button" onClick={handleUnderline} className="p-1 hover:bg-gray-100 rounded"><ToolbarUnderlineIcon /></button>
+                  <button type="button" onClick={handleStrikethrough} className="p-1 hover:bg-gray-100 rounded"><ToolbarStrikeIcon /></button>
                   
-                  {/* Font Size Dropdown */}
-                  <div className="relative" ref={fontSizeRef}>
-                    <button
-                      type="button"
-                      onClick={() => setFontSizeOpen(!fontSizeOpen)}
-                      className="flex h-6 items-center gap-3 rounded bg-[#F3F4F6] px-3 text-sm text-[#4B5563] hover:bg-gray-200"
-                    >
-                      {currentFontSize}
-                      <ChevronDown className="h-4 w-4" />
+                  {/* Color Picker Group (Box + Arrow + A) */}
+                  <div className="relative flex items-center gap-1" ref={textColorRef}>
+                    <button type="button" onClick={() => setTextColorOpen(!textColorOpen)} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarColorBoxIcon selectedColor={currentTextColor} />
                     </button>
-                    {fontSizeOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-20 rounded border border-gray-200 bg-white shadow-lg py-1 z-30">
-                        {['12', '14', '16', '18', '24', '32'].map(size => (
-                          <button
-                            key={size}
-                            className="block w-full px-4 py-1 text-left text-sm hover:bg-gray-100"
-                            onClick={() => handleFontSize(size)}
-                          >
-                            {size}
-                          </button>
-                        ))}
+                    {/* Arrow Icon from SVG Set */}
+                    <button type="button" onClick={() => setTextColorOpen(!textColorOpen)} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarArrowIcon />
+                    </button>
+                    
+                    <button type="button" onClick={handleUnderline} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarTextIcon />
+                    </button>
+                    
+                    {textColorOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-32 rounded border border-gray-200 bg-white shadow-lg p-2 z-30 grid grid-cols-4 gap-2">
+                         {['#000000', '#FF0000', '#0000FF', '#008000', '#FFA500', '#800080', '#A52A2A', '#808080'].map(c => (
+                           <div key={c} className="w-6 h-6 rounded-full cursor-pointer border border-gray-200 hover:scale-110 transition-transform" style={{ backgroundColor: c }} onClick={() => handleTextColor(c)} />
+                         ))}
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
 
-              <div className="h-7 w-px bg-[#E5E7EB]" />
+                <div className="h-6 w-px bg-[#E5E7EB]" />
 
-              {/* Styles */}
-              <div className="flex items-center gap-7">
-                <button type="button" onClick={handleBold} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Bold className="h-6 w-6" /></button>
-                <button type="button" onClick={handleItalic} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Italic className="h-6 w-6" /></button>
-                <button type="button" onClick={handleUnderline} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Underline className="h-6 w-6" /></button>
-                <button type="button" onClick={handleStrikethrough} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Strikethrough className="h-6 w-6" /></button>
-                <div className="flex items-center gap-1">
-                  <button type="button" onClick={handleHighlight} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Highlighter className="h-6 w-6" /></button>
-                </div>
-                <button type="button" onClick={handleInlineCode} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Baseline className="h-6 w-6" /></button>
-              </div>
-
-              <div className="h-7 w-px bg-[#E5E7EB]" />
-
-              {/* Insert */}
-              <div className="flex items-center gap-7">
-                <button type="button" onClick={handleLink} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Link className="h-6 w-6" /></button>
-                <button type="button" onClick={handleImageClick} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><ImageIcon className="h-6 w-6" /></button>
-              </div>
-
-              <div className="h-7 w-px bg-[#E5E7EB]" />
-
-              {/* Lists */}
-              <div className="flex items-center gap-7">
+                {/* Insert: Link, Image */}
                 <div className="flex items-center gap-3">
-                  <button type="button" onClick={handleUnorderedList} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><List className="h-6 w-6" /></button>
-                  <button type="button" onClick={handleOrderedList} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><ListOrdered className="h-6 w-6" /></button>
+                  <button type="button" onClick={handleLink} className="p-1 hover:bg-gray-100 rounded">
+                     <ToolbarLinkIcon />
+                  </button>
+                  <button type="button" onClick={handleImageClick} className="p-1 hover:bg-gray-100 rounded">
+                     <ToolbarImageIcon />
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-7">
-                <button type="button" onClick={() => handleAlign('left')} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><AlignLeft className="h-6 w-6" /></button>
-                <button type="button" onClick={() => handleAlign('center')} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><AlignCenter className="h-6 w-6" /></button>
-                <button type="button" onClick={() => handleAlign('right')} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><AlignRight className="h-6 w-6" /></button>
-                <button type="button" onClick={() => handleAlign('justify')} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><AlignJustify className="h-6 w-6" /></button>
-              </div>
+              {/* BOTTOM ROW */}
+              <div className="flex w-full items-center justify-center gap-6 border-t border-[#F3F4F6] pt-3">
+                 {/* List */}
+                 <button type="button" onClick={handleUnorderedList} className="p-1 hover:bg-gray-100 rounded">
+                   <ToolbarListGroupIcon />
+                 </button>
+                 
+                 {/* Align */}
+                 <div className="flex items-center gap-2">
+                   <button type="button" onClick={() => handleAlign('left')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignLeftIcon /></button>
+                   <button type="button" onClick={() => handleAlign('center')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignCenterIcon /></button>
+                   <button type="button" onClick={() => handleAlign('right')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignRightIcon /></button>
+                   <button type="button" onClick={() => handleAlign('justify')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignJustifyIcon /></button>
+                 </div>
 
-              <div className="flex items-center gap-7">
-                <button type="button" onClick={handleEraser} className="p-1 hover:bg-gray-100 rounded text-[#6B7280]"><Eraser className="h-6 w-6" /></button>
+                 {/* Misc: LineHeight, Outdent, Indent */}
+                 <div className="flex items-center gap-2">
+                    <button type="button" onClick={handleLineHeight} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarLineHeightIcon />
+                    </button>
+                    <button type="button" onClick={handleOutdent} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarOutdentIcon />
+                    </button>
+                    <button type="button" onClick={handleIndent} className="p-1 hover:bg-gray-100 rounded">
+                       <ToolbarIndentIcon />
+                    </button>
+                 </div>
+
+                 {/* Eraser */}
+                 <div className="flex items-center gap-1">
+                   <button type="button" onClick={handleEraser} className="p-1 hover:bg-gray-100 rounded">
+                     <ToolbarEraserIcon />
+                   </button>
+                 </div>
               </div>
             </div>
 
@@ -552,9 +611,6 @@ export default function CommunityCreatePage() {
               {/* Right: Preview */}
               <div className="flex h-full min-h-[600px] w-full flex-col bg-white p-6">
                 <div className="mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Preview</div>
-                {/* prose class allows handy typography defaults if @tailwindcss/typography installed. 
-                    If not, we style elements manually via components prop or global CSS.
-                    Assuming standard tailwind here. */}
                 <div className="prose prose-sm max-w-none flex-1 overflow-y-auto font-['Pretendard'] text-[14px] leading-relaxed text-black">
                    <ReactMarkdown 
                      remarkPlugins={[remarkGfm]}
@@ -570,6 +626,8 @@ export default function CommunityCreatePage() {
                        img: ({node, ...props}) => <img className="max-w-full h-auto my-2 rounded shadow-sm" {...props} />,
                        code: ({node, ...props}) => <code className="bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm text-red-500" {...props} />,
                        pre: ({node, ...props}) => <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />,
+                       span: ({node, ...props}) => <span {...props} />,
+                       div: ({node, ...props}) => <div {...props} />,
                      }}
                    >
                      {content || '*미리보기가 여기에 표시됩니다.*'}
