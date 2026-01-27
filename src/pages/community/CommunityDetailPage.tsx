@@ -69,6 +69,13 @@ export default function CommunityDetailPage() {
   // 목록에서 전달받은 썸네일 URL
   const thumbnailFromList = location.state?.thumbnail_img_url || null
 
+  // 로그인 상태 및 현재 사용자 정보
+  const loggedIn = isLoggedIn()
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+
+  // 현재 로그인한 사용자가 게시글 작성자인지 확인
+  const isAuthor = post && currentUserId !== null && post.author.id === currentUserId
+
   // 무한 스크롤
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -98,6 +105,9 @@ export default function CommunityDetailPage() {
 
   // 댓글 삭제 팝업
   const [deleteCommentId, setDeleteCommentId] = useState<number | null>(null)
+  
+  // 게시글 삭제 모달
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   // 멘션 기능
   const [showMentionModal, setShowMentionModal] = useState(false)
@@ -109,9 +119,6 @@ export default function CommunityDetailPage() {
   // 실시간 시간 업데이트
   const [currentTime, setCurrentTime] = useState(Date.now())
 
-  // 로그인 상태
-  const loggedIn = isLoggedIn()
-
   // 1분마다 시간 업데이트
   useEffect(() => {
     const interval = setInterval(() => {
@@ -119,6 +126,24 @@ export default function CommunityDetailPage() {
     }, 60000)
 
     return () => clearInterval(interval)
+  }, [])
+
+  // 현재 로그인한 사용자 정보 가져오기
+  useEffect(() => {
+    // TODO: 실제 사용자 정보를 가져오는 API 호출로 교체 필요
+    // 예: const userData = await getCurrentUser()
+    // setCurrentUserId(userData.id)
+    
+    // 임시: localStorage나 context에서 사용자 ID 가져오기
+    const userDataString = localStorage.getItem('user')
+    if (userDataString) {
+      try {
+        const userData = JSON.parse(userDataString)
+        setCurrentUserId(userData.id)
+      } catch (err) {
+        console.error('사용자 정보 파싱 실패:', err)
+      }
+    }
   }, [])
 
   // 멘션 모달 외부 클릭 감지
@@ -451,6 +476,21 @@ export default function CommunityDetailPage() {
     window.alert('링크가 복사되었습니다.')
   }
 
+  // 게시글 삭제
+  const handleDeletePost = async () => {
+    try {
+      // TODO: 실제 API 호출로 교체 필요
+      // await deleteCommunityPost(Number(postId))
+      
+      setShowDeleteModal(false)
+      window.alert('게시글이 삭제되었습니다.')
+      navigate('/community')
+    } catch (err) {
+      console.error('게시글 삭제 실패:', err)
+      window.alert('게시글 삭제에 실패했습니다.')
+    }
+  }
+
   if (loading) return <div className="py-20 text-center">로딩 중...</div>
   if (error)
     return <div className="py-20 text-center text-red-500">{error}</div>
@@ -469,7 +509,7 @@ export default function CommunityDetailPage() {
           {post.title}
         </h1>
 
-        <div className="flex items-center gap-2 mt-6 self-start">
+        <div className="flex flex-col items-center gap-2 mt-6">
           <img
             src={post.author.profile_img_url || DEFAULT_AVATAR}
             className="h-10 w-10 rounded-full object-cover"
@@ -481,6 +521,25 @@ export default function CommunityDetailPage() {
           <span className="text-[16px] font-medium text-[#4D4D4D]">
             {post.author.nickname}
           </span>
+          
+          {/* 작성자 본인인 경우에만 수정/삭제 버튼 표시 */}
+          {isAuthor && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(`/community/${postId}/edit`)}
+                className="text-[14px] text-[#6201E0] hover:underline"
+              >
+                수정
+              </button>
+              <span className="text-[14px] text-[#CECECE]">|</span>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="text-[14px] text-[#6201E0] hover:underline"
+              >
+                삭제
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -521,7 +580,7 @@ export default function CommunityDetailPage() {
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
         <button
-          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] transition-all ${isLiked
+          className={`flex items-center gap-1 rounded-full border-2 px-4 py-2 text-[12px] transition-all ${isLiked
             ? 'border-[#6201E0] bg-[#F5EFFF] text-[#6201E0]'
             : 'border-[#CECECE] bg-white text-[#707070]'
             }`}
@@ -599,13 +658,16 @@ export default function CommunityDetailPage() {
               maxLength={MAX_COMMENT_LENGTH}
             />
             <div className="absolute bottom-4 right-4 flex items-center gap-3">
+              <span className="text-[14px] text-[#9D9D9D]">
+                {newComment.length}/{MAX_COMMENT_LENGTH}
+              </span>
               <button
                 onClick={handleCommentSubmit}
                 disabled={!newComment.trim() || isSubmitting}
                 className={`
-                rounded-full px-5 py-1.5 text-[16px] font-medium transition-all border-1
+                rounded-full px-5 py-1.5 text-[16px] font-medium transition-all
                 ${!newComment.trim() || isSubmitting
-                    ? 'bg-[#ECECEC] text-[#4D4D4D] border-[#CECECE] cursor-not-allowed'
+                    ? 'bg-[#E5E5E5] text-[#9D9D9D] cursor-not-allowed'
                     : 'bg-[#EFE6FC] text-[#6201E0] border-2 border-[#6201E0] hover:bg-[#DED3F5] active:scale-95'
                   }
               `}
@@ -736,7 +798,7 @@ export default function CommunityDetailPage() {
 
       {/* 댓글 삭제 확인 팝업 */}
       {deleteCommentId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
             <h2 className="text-left text-[16px] font-regular text-[#303030]">
               댓글을 삭제하시겠습니까?
@@ -759,6 +821,48 @@ export default function CommunityDetailPage() {
               </button>
               <button
                 onClick={() => handleDeleteComment(deleteCommentId)}
+                className="
+                  w-[76px] h-[42px]
+                  rounded-full
+                  bg-[#6201E0]
+                  text-[16px] font-medium text-white
+                  flex items-center justify-center
+                  hover:bg-[#5200BE]
+                  transition-colors
+                "
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 게시글 삭제 확인 팝업 */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
+            <h2 className="text-left text-[16px] font-regular text-[#303030]">
+              게시글을 삭제하시겠습니까?
+            </h2>
+
+            <div className="flex justify-end gap-3 mt-auto -mb-4">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="
+                  w-[76px] h-[42px]
+                  rounded-full
+                  bg-[#EFE6FC]
+                  text-[16px] font-medium text-[#4E01B3]
+                  flex items-center justify-center
+                  hover:bg-[#E1D2FA]
+                  transition-colors
+                "
+              >
+                취소
+              </button>
+              <button
+                onClick={handleDeletePost}
                 className="
                   w-[76px] h-[42px]
                   rounded-full
