@@ -31,7 +31,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api } from '../../api/api'
+import { api, createCommunityPost, getAccessToken } from '../../api/api'
 import type { CommunityCategory, CreateCommunityPostResponse } from '../../types'
 
 // ----------------------------------------------------------------------
@@ -386,20 +386,18 @@ export default function CommunityCreatePage() {
 
     try {
       setIsLoading(true)
-      const res = await api.post<CreateCommunityPostResponse>('/api/v1/posts', {
+      const token = getAccessToken()
+      const data = await createCommunityPost({
         category_id: categoryId,
         title,
         content,
-      })
+      }, token || undefined)
+      
       alert('게시글이 등록되었습니다.')
-      if (res.data && res.data.pk) {
-        navigate(`/community/${res.data.pk}`)
-      } else {
-        navigate('/community')
-      }
+      navigate(`/community/detail/${data.pk}`)
     } catch (error) {
       console.error('게시글 등록 실패:', error)
-      alert('게시글 등록 중 오류가 발생했습니다.')
+      alert('게시글 등록에 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
