@@ -92,6 +92,9 @@ export default function CommunityDetailPage() {
 
   // 댓글 정렬
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
+  const [showSortModal, setShowSortModal] = useState(false)
+  const sortButtonRef = useRef<HTMLButtonElement>(null)
+  const sortModalRef = useRef<HTMLDivElement>(null)
 
   // 댓글 삭제 팝업
   const [deleteCommentId, setDeleteCommentId] = useState<number | null>(null)
@@ -139,6 +142,28 @@ export default function CommunityDetailPage() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showMentionModal])
+
+  // 정렬 모달 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sortModalRef.current &&
+        !sortModalRef.current.contains(event.target as Node) &&
+        sortButtonRef.current &&
+        !sortButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowSortModal(false)
+      }
+    }
+
+    if (showSortModal) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showSortModal])
 
   // 초기 데이터 로드
   useEffect(() => {
@@ -404,7 +429,13 @@ export default function CommunityDetailPage() {
 
   // 댓글 정렬 토글
   const handleSortToggle = () => {
-    setSortOrder((prev) => (prev === 'latest' ? 'oldest' : 'latest'))
+    setShowSortModal(!showSortModal)
+  }
+
+  // 정렬 옵션 선택
+  const handleSortSelect = (order: 'latest' | 'oldest') => {
+    setSortOrder(order)
+    setShowSortModal(false)
   }
 
   // 정렬된 댓글 목록
@@ -490,7 +521,7 @@ export default function CommunityDetailPage() {
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
         <button
-          className={`flex items-center gap-1 rounded-full border-2 px-4 py-2 text-[12px] transition-all ${isLiked
+          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] transition-all ${isLiked
             ? 'border-[#6201E0] bg-[#F5EFFF] text-[#6201E0]'
             : 'border-[#CECECE] bg-white text-[#707070]'
             }`}
@@ -557,23 +588,24 @@ export default function CommunityDetailPage() {
             
             <textarea
               ref={textareaRef}
-              className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none"
+              className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none scrollbar-hide overflow-y-auto"
+              style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
               placeholder="개인정보를 공유 및 요청하거나, 명예 회손, 무단 광고, 불법 정보 유포시 모니터링 후 삭제될 수 있습니다."
               value={newComment}
               onChange={handleCommentChange}
               maxLength={MAX_COMMENT_LENGTH}
             />
             <div className="absolute bottom-4 right-4 flex items-center gap-3">
-              <span className="text-[14px] text-[#9D9D9D]">
-                {newComment.length}/{MAX_COMMENT_LENGTH}
-              </span>
               <button
                 onClick={handleCommentSubmit}
                 disabled={!newComment.trim() || isSubmitting}
                 className={`
-                rounded-full px-5 py-1.5 text-[16px] font-medium transition-all
+                rounded-full px-5 py-1.5 text-[16px] font-medium transition-all border-1
                 ${!newComment.trim() || isSubmitting
-                    ? 'bg-[#E5E5E5] text-[#9D9D9D] cursor-not-allowed'
+                    ? 'bg-[#ECECEC] text-[#4D4D4D] border-[#CECECE] cursor-not-allowed'
                     : 'bg-[#EFE6FC] text-[#6201E0] border-2 border-[#6201E0] hover:bg-[#DED3F5] active:scale-95'
                   }
               `}
@@ -593,17 +625,49 @@ export default function CommunityDetailPage() {
             댓글 {post.comment_count}개
           </div>
 
-          <button
-            className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
-            onClick={handleSortToggle}
-          >
-            {sortOrder === 'latest' ? '최신순' : '오래된 순'}
-            <img
-              src="/icons/swap-vertical-outline.svg"
-              className="h-4 w-4"
-              alt="정렬"
-            />
-          </button>
+          <div className="relative">
+            <button
+              ref={sortButtonRef}
+              className="flex items-center gap-1 text-[16px] text-[#4D4D4D] hover:text-[#6201E0]"
+              onClick={handleSortToggle}
+            >
+              {sortOrder === 'latest' ? '최신순' : '오래된 순'}
+              <img
+                src="/icons/swap-vertical-outline.svg"
+                className="h-4 w-4"
+                alt="정렬"
+              />
+            </button>
+
+            {/* 정렬 모달 */}
+            {showSortModal && (
+              <div
+                ref={sortModalRef}
+                className="absolute top-full right-0 mt-2 w-[160px] bg-white rounded-[12px] shadow-lg border border-[#E5E5E5] overflow-hidden z-50"
+              >
+                <button
+                  onClick={() => handleSortSelect('latest')}
+                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${
+                    sortOrder === 'latest'
+                      ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
+                      : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
+                  }`}
+                >
+                  최신순
+                </button>
+                <button
+                  onClick={() => handleSortSelect('oldest')}
+                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${
+                    sortOrder === 'oldest'
+                      ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
+                      : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
+                  }`}
+                >
+                  오래된 순
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
