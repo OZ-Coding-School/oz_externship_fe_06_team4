@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   getCommunityPostDetail,
@@ -59,11 +59,15 @@ const LoadingDots = () => {
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [post, setPost] = useState<CommunityPostDetail | null>(null)
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // 목록에서 전달받은 썸네일 URL
+  const thumbnailFromList = location.state?.thumbnail_img_url || null
 
   // 무한 스크롤
   const [page, setPage] = useState(1)
@@ -460,6 +464,23 @@ export default function CommunityDetailPage() {
       <div className="my-6 flex justify-center">
         <hr className="w-[944px] border-[#CECECE]" />
       </div>
+
+      {/* 썸네일 이미지 */}
+      {thumbnailFromList && (
+        <div className="mb-6 flex justify-center">
+          <div className="w-full max-w-[944px] overflow-hidden rounded-[12px]">
+            <img
+              src={thumbnailFromList}
+              alt={post.title}
+              className="w-full h-auto object-cover"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 본문 */}
       <div className="whitespace-pre-wrap text-[16px] leading-relaxed text-[#121212]">
