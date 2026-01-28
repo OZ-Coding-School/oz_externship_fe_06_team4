@@ -1,4 +1,4 @@
-// src/components/community/list/CommunityListItem.tsx
+
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CommunityPostListItem } from '../../../types'

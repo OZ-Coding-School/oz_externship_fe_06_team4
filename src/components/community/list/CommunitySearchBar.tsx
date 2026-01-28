@@ -116,8 +116,6 @@ export default function CommunitySearchBar({
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [open])
 
-  const selectedLabel =
-    FILTER_ITEMS.find((x) => x.key === filter)?.label ?? '제목'
 
   return (
     <div className="flex w-[944px] items-center justify-between">
@@ -169,7 +167,7 @@ export default function CommunitySearchBar({
           )}
         </div>
 
-        {/* ✅ 검색 입력 (bg #FAFAFA / border #BDBDBD / radius 1000px 유지) */}
+        {/*  검색 입력 */}
         <div className="relative">
           <div className="pointer-events-none absolute top-1/2 left-[14px] -translate-y-1/2">
             <svg
