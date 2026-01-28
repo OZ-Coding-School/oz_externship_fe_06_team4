@@ -61,11 +61,17 @@ type Comment = {
 }
 
 /**
- * Authorization 토큰 유무만 체크 (지금 단계에선 “로그인 되어있다/아니다”만 필요)
+ * Authorization 토큰 유무 또는 쿠키 유무 체크
  */
 function isAuthenticated(request: Request): boolean {
   const authHeader = request.headers.get('Authorization')
-  return authHeader?.startsWith('Bearer ') ?? false
+  const hasToken = authHeader?.startsWith('Bearer ') ?? false
+  
+  // 쿠키 방식 체크 (refreshToken 또는 accessToken)
+  const cookie = request.headers.get('Cookie') || ''
+  const hasCookie = cookie.includes('refreshToken') || cookie.includes('accessToken')
+  
+  return hasToken || hasCookie
 }
 
 /** =========================
@@ -380,8 +386,8 @@ export const handlers = [
       view_count: viewCount,
       created_at: post.created_at,
       updated_at: post.updated_at,
-      is_liked: authenticated ? false : undefined,
-      is_author: authenticated ? post.author.id === 1 : undefined,
+      is_liked: authenticated ? false : undefined, // 연동 전엔 false
+      is_author: authenticated ? (post.author.id === 1) : false,
     }
 
     return HttpResponse.json(detail)
