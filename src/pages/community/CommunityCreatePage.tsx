@@ -387,7 +387,7 @@ export default function CommunityCreatePage() {
       }, token || undefined)
       
       alert('게시글이 등록되었습니다.')
-      navigate(`/community/detail/${data.pk}`)
+      navigate(`/community/${data.pk}`)
     } catch (error) {
       console.error('게시글 등록 실패:', error)
       alert('게시글 등록에 실패했습니다.')
