@@ -8,6 +8,7 @@ import {
   likeCommunityPost,
   unlikeCommunityPost,
   isLoggedIn,
+  getCurrentUser,
 } from './../../api/api'
 import { useInfiniteScroll } from './../../hooks'
 import ReactMarkdown from 'react-markdown'
@@ -76,8 +77,15 @@ export default function CommunityDetailPage() {
   const loggedIn = isLoggedIn()
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
-  // 현재 로그인한 사용자가 게시글 작성자인지 확인 (서버 응답 우선, 로컬 검증 차선)
-  const isAuthor = post?.is_author || (post && currentUserId !== null && post.author.id === currentUserId)
+  // 현재 로그인한 사용자가 게시글 작성자인지 확인 (currentUserId와 post.author.id 비교)
+  const isAuthor = loggedIn && currentUserId !== null && post !== null && post.author.id === currentUserId
+
+  // 디버깅용 로그
+  console.log('=== isAuthor 판단 ===')
+  console.log('loggedIn:', loggedIn)
+  console.log('currentUserId:', currentUserId)
+  console.log('post?.author?.id:', post?.author?.id)
+  console.log('isAuthor 결과:', isAuthor)
 
   // 무한 스크롤
   const [page, setPage] = useState(1)
@@ -107,7 +115,7 @@ export default function CommunityDetailPage() {
 
   // 댓글 삭제 팝업
   const [deleteCommentId, setDeleteCommentId] = useState<number | null>(null)
-  
+
   // 게시글 삭제 모달
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -130,25 +138,23 @@ export default function CommunityDetailPage() {
     return () => clearInterval(interval)
   }, [])
 
-  // 현재 로그인한 사용자 정보 가져오기
+  // 현재 로그인한 사용자 정보 가져오기 (API 호출)
   useEffect(() => {
-    if (loggedIn) {
-      const userDataString = localStorage.getItem('user')
-      if (userDataString) {
+    async function fetchCurrentUser() {
+      if (loggedIn) {
         try {
-          const userData = JSON.parse(userDataString)
+          const userData = await getCurrentUser()
           setCurrentUserId(userData.id)
           console.log('현재 로그인한 사용자 ID:', userData.id)
         } catch (err) {
-          console.error('사용자 정보 파싱 실패:', err)
+          console.error('사용자 정보 조회 실패:', err)
           setCurrentUserId(null)
         }
       } else {
         setCurrentUserId(null)
       }
-    } else {
-      setCurrentUserId(null)
     }
+    fetchCurrentUser()
   }, [loggedIn])
 
   // 멘션 모달 외부 클릭 감지
@@ -218,7 +224,7 @@ export default function CommunityDetailPage() {
         setComments(commentData.results || [])
         setIsLiked(postData.is_liked || false)
         setLikeCount(postData.like_count || 0)
-        
+
         // 더 불러올 댓글이 있는지 확인
         setHasMore(commentData.next !== null)
         setPage(1)
@@ -242,7 +248,7 @@ export default function CommunityDetailPage() {
     try {
       setIsLoadingMore(true)
       const nextPage = page + 1
-      
+
       const commentData = await getCommunityComments(Number(postId), {
         page: nextPage,
         page_size: COMMENTS_PER_PAGE
@@ -261,7 +267,7 @@ export default function CommunityDetailPage() {
   // 댓글 작성자들로부터 유저 목록 추출
   const getCommentAuthors = () => {
     const authors = new Map()
-    
+
     if (post) {
       authors.set(post.author.id, {
         id: post.author.id,
@@ -269,7 +275,7 @@ export default function CommunityDetailPage() {
         profile_img_url: post.author.profile_img_url
       })
     }
-    
+
     comments.forEach(comment => {
       if (!authors.has(comment.author.id)) {
         authors.set(comment.author.id, {
@@ -278,9 +284,9 @@ export default function CommunityDetailPage() {
           profile_img_url: comment.author.profile_img_url
         })
       }
-      
-      const commentWithTags = comment as CommunityComment & { 
-        tagged_users?: Array<{ id: number; nickname: string }> 
+
+      const commentWithTags = comment as CommunityComment & {
+        tagged_users?: Array<{ id: number; nickname: string }>
       }
       if (commentWithTags.tagged_users && commentWithTags.tagged_users.length > 0) {
         commentWithTags.tagged_users.forEach(taggedUser => {
@@ -294,7 +300,7 @@ export default function CommunityDetailPage() {
         })
       }
     })
-    
+
     return Array.from(authors.values())
   }
 
@@ -351,7 +357,7 @@ export default function CommunityDetailPage() {
 
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1)
-      
+
       if (!textAfterAt.includes(' ') && !textAfterAt.includes('@')) {
         setMentionSearch(textAfterAt)
         setShowMentionModal(true)
@@ -369,9 +375,9 @@ export default function CommunityDetailPage() {
     const textAfterCursor = newComment.slice(cursorPosition)
     const lastAtIndex = textBeforeCursor.lastIndexOf('@')
 
-    const newText = 
-      textBeforeCursor.slice(0, lastAtIndex) + 
-      `@${user.nickname} ` + 
+    const newText =
+      textBeforeCursor.slice(0, lastAtIndex) +
+      `@${user.nickname} ` +
       textAfterCursor
 
     setNewComment(newText)
@@ -483,7 +489,7 @@ export default function CommunityDetailPage() {
     try {
       // TODO: 실제 API 호출로 교체 필요
       // await deleteCommunityPost(Number(postId))
-      
+
       setShowDeleteModal(false)
       window.alert('게시글이 삭제되었습니다.')
       navigate('/community')
@@ -511,7 +517,7 @@ export default function CommunityDetailPage() {
           {post.title}
         </h1>
 
-<div className="flex flex-col items-end gap-2 mt-6">
+        <div className="flex flex-col items-end gap-2 mt-6">
           {/* 프로필 이미지 + 닉네임 (가로 배치) */}
           <div className="flex items-center gap-2">
             <img
@@ -526,7 +532,7 @@ export default function CommunityDetailPage() {
               {post.author.nickname}
             </span>
           </div>
-          
+
           {/* 작성자 본인이고 로그인한 경우에만 수정/삭제 버튼 표시 */}
           {loggedIn && isAuthor && (
             <div className="flex items-center gap-2">
@@ -672,7 +678,7 @@ export default function CommunityDetailPage() {
                 ))}
               </div>
             )}
-            
+
             <textarea
               ref={textareaRef}
               className="w-full h-[60px] resize-none bg-transparent text-[16px] text-[#121212] placeholder-[#CECECE] focus:outline-none scrollbar-hide overflow-y-auto"
@@ -737,21 +743,19 @@ export default function CommunityDetailPage() {
               >
                 <button
                   onClick={() => handleSortSelect('latest')}
-                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${
-                    sortOrder === 'latest'
-                      ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
-                      : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
-                  }`}
+                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${sortOrder === 'latest'
+                    ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
+                    : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
+                    }`}
                 >
                   최신순
                 </button>
                 <button
                   onClick={() => handleSortSelect('oldest')}
-                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${
-                    sortOrder === 'oldest'
-                      ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
-                      : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
-                  }`}
+                  className={`w-full px-4 py-3 text-left text-[16px] transition-colors ${sortOrder === 'oldest'
+                    ? 'bg-[#F5EFFF] text-[#6201E0] font-medium'
+                    : 'text-[#4D4D4D] hover:bg-[#F9F9F9]'
+                    }`}
                 >
                   오래된 순
                 </button>
@@ -812,7 +816,7 @@ export default function CommunityDetailPage() {
                   </div>
                 </li>
               ))}
-              
+
               {/* 무한 스크롤 트리거 */}
               {hasMore && (
                 <div ref={observerRef} className="py-8 text-center">

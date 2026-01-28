@@ -66,11 +66,11 @@ type Comment = {
 function isAuthenticated(request: Request): boolean {
   const authHeader = request.headers.get('Authorization')
   const hasToken = authHeader?.startsWith('Bearer ') ?? false
-  
+
   // 쿠키 방식 체크 (refreshToken 또는 accessToken)
   const cookie = request.headers.get('Cookie') || ''
   const hasCookie = cookie.includes('refreshToken') || cookie.includes('accessToken')
-  
+
   return hasToken || hasCookie
 }
 
@@ -251,6 +251,38 @@ export const handlers = [
     )
   }),
 
+  /**
+   * 내 정보 조회 API
+   * GET /api/v1/accounts/me
+   * - 로그인 필요
+   */
+  http.get('*/api/v1/accounts/me', ({ request }) => {
+    const authenticated = isAuthenticated(request)
+    console.log('[Mock] /api/v1/accounts/me 호출됨, authenticated:', authenticated)
+
+    if (!authenticated) {
+      console.log('[Mock] 인증 실패 - 401 반환')
+      return HttpResponse.json(
+        { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
+        { status: 401 }
+      )
+    }
+
+    console.log('[Mock] 인증 성공 - 사용자 ID: 99 반환')
+    // Mock 로그인 사용자 정보 반환 (기존 게시글 작성자와 다른 ID 사용)
+    return HttpResponse.json({
+      id: 99,
+      email: 'user@example.com',
+      nickname: '로그인유저',
+      name: '테스트유저',
+      phone_number: '01012345678',
+      birthday: '1990-01-01',
+      gender: 'M',
+      profile_img_url: null,
+      created_at: new Date().toISOString(),
+    })
+  }),
+
   /* =========================
    * Community
    * ========================= */
@@ -331,7 +363,7 @@ export const handlers = [
       id: postsStore.length + 1,
       title: body.title,
       content_preview: body.content.substring(0, 100),
-      author: { id: 1, nickname: '로그인유저', profile_img_url: null },
+      author: { id: 99, nickname: '로그인유저', profile_img_url: null },
       created_at: nowISO(),
       updated_at: nowISO(),
       category_id: body.category_id,
@@ -387,7 +419,7 @@ export const handlers = [
       created_at: post.created_at,
       updated_at: post.updated_at,
       is_liked: authenticated ? false : undefined, // 연동 전엔 false
-      is_author: authenticated ? (post.author.id === 1) : false,
+      // is_author는 API 명세에 없으므로 제거 - 프론트에서 currentUserId와 post.author.id 비교로 판단
     }
 
     return HttpResponse.json(detail)
