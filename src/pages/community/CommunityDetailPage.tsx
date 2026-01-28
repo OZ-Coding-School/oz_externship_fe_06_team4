@@ -76,8 +76,8 @@ export default function CommunityDetailPage() {
   const loggedIn = isLoggedIn()
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
-  // 현재 로그인한 사용자가 게시글 작성자인지 확인
-  const isAuthor = post && currentUserId !== null && post.author.id === currentUserId
+  // 현재 로그인한 사용자가 게시글 작성자인지 확인 (서버 응답 우선, 로컬 검증 차선)
+  const isAuthor = post?.is_author || (post && currentUserId !== null && post.author.id === currentUserId)
 
   // 무한 스크롤
   const [page, setPage] = useState(1)
