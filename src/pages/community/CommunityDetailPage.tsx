@@ -512,18 +512,21 @@ export default function CommunityDetailPage() {
           {post.title}
         </h1>
 
-        <div className="flex flex-col items-center gap-2 mt-6">
-          <img
-            src={post.author.profile_img_url || DEFAULT_AVATAR}
-            className="h-10 w-10 rounded-full object-cover"
-            alt={`${post.author.nickname} 프로필`}
-            onError={(e) => {
-              e.currentTarget.src = DEFAULT_AVATAR
-            }}
-          />
-          <span className="text-[16px] font-medium text-[#4D4D4D]">
-            {post.author.nickname}
-          </span>
+<div className="flex flex-col items-end gap-2 mt-6">
+          {/* 프로필 이미지 + 닉네임 (가로 배치) */}
+          <div className="flex items-center gap-2">
+            <img
+              src={post.author.profile_img_url || DEFAULT_AVATAR}
+              className="h-10 w-10 rounded-full object-cover"
+              alt={`${post.author.nickname} 프로필`}
+              onError={(e) => {
+                e.currentTarget.src = DEFAULT_AVATAR
+              }}
+            />
+            <span className="text-[16px] font-medium text-[#4D4D4D]">
+              {post.author.nickname}
+            </span>
+          </div>
           
           {/* 작성자 본인이고 로그인한 경우에만 수정/삭제 버튼 표시 */}
           {loggedIn && isAuthor && (
