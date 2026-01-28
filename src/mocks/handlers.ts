@@ -69,7 +69,31 @@ function isAuthenticated(request: Request): boolean {
 }
 
 /** =========================
- * In-memory Stores
+ * localStorage Persistence
+ * ========================= */
+
+const LS_POSTS_KEY = 'mock_posts'
+const LS_FULL_CONTENT_KEY = 'mock_full_content'
+const LS_COMMENTS_KEY = 'mock_comments'
+const LS_LIKES_KEY = 'mock_likes'
+const LS_VIEWS_KEY = 'mock_views'
+
+function loadFromLS<T>(key: string, defaultValue: T): T {
+  const saved = localStorage.getItem(key)
+  if (!saved) return defaultValue
+  try {
+    return JSON.parse(saved)
+  } catch {
+    return defaultValue
+  }
+}
+
+function saveToLS(key: string, value: any) {
+  localStorage.setItem(key, JSON.stringify(value))
+}
+
+/** =========================
+ * In-memory Stores (Initialized from localStorage)
  * ========================= */
 
 const CATEGORIES: CommunityCategory[] = [
@@ -84,7 +108,7 @@ const CATEGORIES: CommunityCategory[] = [
 
 const nowISO = () => new Date().toISOString()
 
-const postsStore: CommunityPostListItem[] = [
+const INITIAL_POSTS: CommunityPostListItem[] = [
   {
     id: 1,
     title: '데이터 분석 프로젝트 구합니다!',
@@ -130,28 +154,37 @@ const postsStore: CommunityPostListItem[] = [
   },
 ]
 
+const postsStore: CommunityPostListItem[] = loadFromLS(LS_POSTS_KEY, INITIAL_POSTS)
+
 /** postId별 댓글 저장 */
-const commentsStore: Record<number, Comment[]> = {
+const commentsStore: Record<number, Comment[]> = loadFromLS(LS_COMMENTS_KEY, {
   1: [],
   2: [],
   3: [],
-}
+})
 
 /** postId별 좋아요 */
-const likesStore: Record<number, number> = {
-  1: postsStore.find((p) => p.id === 1)?.like_count ?? 0,
-  2: postsStore.find((p) => p.id === 2)?.like_count ?? 0,
-  3: postsStore.find((p) => p.id === 3)?.like_count ?? 0,
-}
+const likesStore: Record<number, number> = loadFromLS(LS_LIKES_KEY, {
+  1: 156,
+  2: 82,
+  3: 34,
+})
 
 /** postId별 조회수 */
-const viewCountStore: Record<number, number> = {
-  1: postsStore.find((p) => p.id === 1)?.view_count ?? 0,
-  2: postsStore.find((p) => p.id === 2)?.view_count ?? 0,
-  3: postsStore.find((p) => p.id === 3)?.view_count ?? 0,
-}
+const viewCountStore: Record<number, number> = loadFromLS(LS_VIEWS_KEY, {
+  1: 60,
+  2: 40,
+  3: 110,
+})
 
-let nextCommentId = 1
+/** postId별 본문(Markdown) 저장 */
+const fullContentStore: Record<number, string> = loadFromLS(LS_FULL_CONTENT_KEY, {
+  1: postsStore.find((p) => p.id === 1)?.content_preview ?? '',
+  2: postsStore.find((p) => p.id === 2)?.content_preview ?? '',
+  3: postsStore.find((p) => p.id === 3)?.content_preview ?? '',
+})
+
+let nextCommentId = Math.max(0, ...Object.values(commentsStore).flatMap(cs => cs.map(c => c.id))) + 1
 
 /** =========================
  * Helpers
@@ -292,7 +325,7 @@ export const handlers = [
       id: postsStore.length + 1,
       title: body.title,
       content_preview: body.content.substring(0, 100),
-      author: { id: 100, nickname: '로그인유저', profile_img_url: null },
+      author: { id: 1, nickname: '로그인유저', profile_img_url: null },
       created_at: nowISO(),
       updated_at: nowISO(),
       category_id: body.category_id,
@@ -303,6 +336,11 @@ export const handlers = [
     }
 
     postsStore.unshift(newPost) // 최신글이 위로 오도록 앞에 추가
+    fullContentStore[newPost.id] = body.content // 전체 본문 저장
+
+    // Save to localStorage
+    saveToLS(LS_POSTS_KEY, postsStore)
+    saveToLS(LS_FULL_CONTENT_KEY, fullContentStore)
 
     return HttpResponse.json(
       { detail: '게시글이 등록되었습니다.', pk: newPost.id },
@@ -334,7 +372,7 @@ export const handlers = [
     const detail: CommunityPostDetail = {
       id: post.id,
       title: post.title,
-      content: `${post.content_preview}\n\n(상세 본문은 임시입니다.)`,
+      content: fullContentStore[pid] || post.content_preview,
       category: getCategoryById(post.category_id),
       author: post.author,
       like_count: likeCount,
@@ -343,7 +381,7 @@ export const handlers = [
       created_at: post.created_at,
       updated_at: post.updated_at,
       is_liked: authenticated ? false : undefined,
-      is_author: authenticated ? false : undefined,
+      is_author: authenticated ? post.author.id === 1 : undefined,
     }
 
     return HttpResponse.json(detail)
@@ -391,7 +429,7 @@ export const handlers = [
     const list = commentsStore[pid] ?? []
     const results = list.map((c) => ({
       ...c,
-      is_author: authenticated ? false : undefined,
+      is_author: authenticated ? c.author.id === 1 : undefined,
     }))
 
     return HttpResponse.json({
@@ -429,7 +467,7 @@ export const handlers = [
     const newComment: Comment = {
       id: nextCommentId++,
       content,
-      author: { id: 100, nickname: '로그인유저', profile_img_url: null },
+      author: { id: 1, nickname: '로그인유저', profile_img_url: null },
       created_at: nowISO(),
       updated_at: nowISO(),
     }

@@ -10,6 +10,9 @@ import {
   isLoggedIn,
 } from './../../api/api'
 import { useInfiniteScroll } from './../../hooks'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import type { CommunityPostDetail, CommunityComment } from './../../types'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
@@ -91,7 +94,6 @@ export default function CommunityDetailPage() {
   // 댓글 작성
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isSubmitClicked, setIsSubmitClicked] = useState(false)
 
   // 좋아요 상태
   const [isLiked, setIsLiked] = useState(false)
@@ -410,7 +412,6 @@ export default function CommunityDetailPage() {
 
     try {
       setIsSubmitting(true)
-      setIsSubmitClicked(true)
       await createCommunityComment(Number(postId), { content: newComment })
 
       // 첫 페이지만 새로고침
@@ -428,11 +429,9 @@ export default function CommunityDetailPage() {
       setNewComment('')
       window.alert('댓글이 등록되었습니다.')
 
-      setTimeout(() => setIsSubmitClicked(false), 200)
     } catch (err) {
       console.error('댓글 작성 실패:', err)
       window.alert('댓글 작성에 실패했습니다.')
-      setIsSubmitClicked(false)
     } finally {
       setIsSubmitting(false)
     }
@@ -514,11 +513,13 @@ export default function CommunityDetailPage() {
 
         <div className="flex flex-col items-center gap-2 mt-6">
           <img
-            src={post.author.profile_img_url || DEFAULT_AVATAR}
+            src={post.author.profile_img_url && post.author.profile_img_url.trim() !== '' ? post.author.profile_img_url : DEFAULT_AVATAR}
             className="h-10 w-10 rounded-full object-cover"
             alt={`${post.author.nickname} 프로필`}
             onError={(e) => {
-              e.currentTarget.src = DEFAULT_AVATAR
+              if (e.currentTarget.src !== window.location.origin + DEFAULT_AVATAR) {
+                e.currentTarget.src = DEFAULT_AVATAR
+              }
             }}
           />
           <span className="text-[16px] font-medium text-[#4D4D4D]">
@@ -559,7 +560,7 @@ export default function CommunityDetailPage() {
       </div>
 
       {/* 썸네일 이미지 */}
-      {thumbnailFromList && (
+      {thumbnailFromList && thumbnailFromList.trim() !== '' && (
         <div className="mb-6 flex justify-center">
           <div className="w-full max-w-[944px] overflow-hidden rounded-[12px]">
             <img
@@ -575,9 +576,32 @@ export default function CommunityDetailPage() {
         </div>
       )}
 
-      {/* 본문 */}
-      <div className="whitespace-pre-wrap text-[16px] leading-relaxed text-[#121212]">
-        {post.content}
+      {/* 본문 (Markdown Rendering) */}
+      <div className="prose prose-sm max-w-none text-[16px] leading-relaxed text-[#121212] font-['Pretendard']">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            h1: ({ node, ...props }) => <h1 className="text-2xl font-bold my-4 border-b pb-2" {...props} />,
+            h2: ({ node, ...props }) => <h2 className="text-xl font-bold my-3" {...props} />,
+            h3: ({ node, ...props }) => <h3 className="text-lg font-bold my-2" {...props} />,
+            p: ({ node, ...props }) => <p className="mb-4 whitespace-pre-wrap" {...props} />,
+            ul: ({ node, ...props }) => <ul className="list-disc ml-6 mb-4" {...props} />,
+            ol: ({ node, ...props }) => <ol className="list-decimal ml-6 mb-4" {...props} />,
+            blockquote: ({ node, ...props }) => (
+              <blockquote className="border-l-4 border-gray-200 pl-4 py-1 my-4 italic bg-gray-50" {...props} />
+            ),
+            img: ({ node, ...props }) => {
+              if (!props.src || props.src.trim() === '') return null
+              return <img className="max-w-full h-auto my-4 rounded shadow-md" {...props} />
+            },
+            a: ({ node, ...props }) => (
+              <a className="text-[#6201E0] hover:underline transition-colors" target="_blank" rel="noopener noreferrer" {...props} />
+            ),
+          }}
+        >
+          {post.content}
+        </ReactMarkdown>
       </div>
 
       {/* 좋아요 / 공유하기 */}

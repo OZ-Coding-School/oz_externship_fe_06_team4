@@ -1,4 +1,4 @@
-// src/api/api.ts
+
 import axios from 'axios'
 import type {
   CommunityCategory,
@@ -16,7 +16,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 /** axios 인스턴스 (쿠키 인증 대비: withCredentials) */
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, // ✅ 쿠키 기반 인증이면 사실상 필수
+  withCredentials: true, 
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,9 +30,9 @@ function getCookie(name: string): string | null {
   return null
 }
 
-/** 로그인 상태 확인 (refreshToken 쿠키 존재 여부) */
+/** 로그인 상태 확인 (refreshToken 쿠키 또는 localStorage user 존재 여부) */
 export function isLoggedIn(): boolean {
-  return getCookie('refreshToken') !== null
+  return getCookie('refreshToken') !== null || localStorage.getItem('user') !== null
 }
 
 /** (옵션) Access Token 가져오기 (HttpOnly면 null 나올 수 있음) */

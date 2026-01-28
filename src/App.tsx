@@ -12,7 +12,6 @@ export default function App() {
     <div className="flex min-h-screen flex-col bg-white">
       <Header />
 
-      {/* ✅ footer랑 겹치거나 떠보이는 느낌 방지: pb 추가 */}
       <main className="flex-1 pt-[96px] pb-[120px]">
         <Routes>
           <Route path="/" element={<Navigate to="/community" replace />} />
@@ -25,7 +24,7 @@ export default function App() {
           />
           <Route path="/community/:postId" element={<CommunityDetailPage />} />
           
-          {/* ✅ 404 Not Found */}
+          {/* 404 Not Found */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
