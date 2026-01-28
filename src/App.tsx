@@ -5,6 +5,7 @@ import CommunityDetailPage from './pages/community/CommunityDetailPage'
 import CommunityListPage from './pages/community/CommunityListPage'
 import CommunityCreatePage from './pages/community/CommunityCreatePage'
 import CommunityEditPage from './pages/community/CommunityEditPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
   return (
@@ -23,6 +24,9 @@ export default function App() {
             element={<CommunityEditPage />}
           />
           <Route path="/community/:postId" element={<CommunityDetailPage />} />
+          
+          {/* ✅ 404 Not Found */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 

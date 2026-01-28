@@ -4,8 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import {
-  ChevronDown, // Used in dropdowns? Check usage. actually List Group doesn't use it anymore, but keep if needed elsewhere.
-  // Original List, ListOrdered, Align... removed as they are replaced.
+  ChevronDown, 
 } from 'lucide-react'
 import {
   UndoIcon,
@@ -31,7 +30,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api } from '../../api/api'
+import { api, createCommunityPost, getAccessToken } from '../../api/api'
 import type { CommunityCategory, CreateCommunityPostResponse } from '../../types'
 
 // ----------------------------------------------------------------------
@@ -55,9 +54,7 @@ function replaceInfo(
   const original = textarea.value
   const newValue = original.substring(0, start) + text + original.substring(end)
   
-  // Set value (React controlled input needs state update, but we do this via returned value)
-  
-  // Return info to update state
+
   return {
     value: newValue,
     newSelectionStart: cursorInfo?.newStart ?? start + text.length,
@@ -65,9 +62,6 @@ function replaceInfo(
   }
 }
 
-// ----------------------------------------------------------------------
-// Component
-// ----------------------------------------------------------------------
 
 export default function CommunityCreatePage() {
   const navigate = useNavigate()
@@ -91,12 +85,11 @@ export default function CommunityCreatePage() {
   const fontSizeRef = useRef<HTMLDivElement>(null)
   const textColorRef = useRef<HTMLDivElement>(null)
   
-  // --- History for Undo/Redo ---
-  // historyStack[historyIndex] = currentContent
+
   const [historyStack, setHistoryStack] = useState<string[]>([''])
   const [historyIndex, setHistoryIndex] = useState(0)
 
-  // --- Initial Data Fetch ---
+
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -109,7 +102,7 @@ export default function CommunityCreatePage() {
     fetchCategories()
   }, [])
 
-  // --- Click Outside Handler for Dropdowns ---
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (fontSizeRef.current && !fontSizeRef.current.contains(event.target as Node)) {
@@ -132,7 +125,7 @@ export default function CommunityCreatePage() {
     }
   }, [])
 
-  // --- History Management Methods ---
+
   const pushToHistory = useCallback((newContent: string) => {
     if (newContent === historyStack[historyIndex]) return // No change
 
@@ -386,20 +379,18 @@ export default function CommunityCreatePage() {
 
     try {
       setIsLoading(true)
-      const res = await api.post<CreateCommunityPostResponse>('/api/v1/posts', {
+      const token = getAccessToken()
+      const data = await createCommunityPost({
         category_id: categoryId,
         title,
         content,
-      })
+      }, token || undefined)
+      
       alert('게시글이 등록되었습니다.')
-      if (res.data && res.data.pk) {
-        navigate(`/community/${res.data.pk}`)
-      } else {
-        navigate('/community')
-      }
+      navigate(`/community/${data.pk}`)
     } catch (error) {
       console.error('게시글 등록 실패:', error)
-      alert('게시글 등록 중 오류가 발생했습니다.')
+      alert('게시글 등록에 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
