@@ -16,7 +16,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 /** axios 인스턴스 (쿠키 인증 대비: withCredentials) */
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, 
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -38,6 +38,15 @@ export function isLoggedIn(): boolean {
 /** (옵션) Access Token 가져오기 (HttpOnly면 null 나올 수 있음) */
 export function getAccessToken(): string | null {
   return getCookie('accessToken')
+}
+
+/** 현재 로그인한 사용자 정보 조회 API */
+export async function getCurrentUser() {
+  const token = getAccessToken()
+  const res = await api.get('/api/v1/accounts/me', {
+    headers: { ...withAuth(token || undefined) },
+  })
+  return res.data
 }
 
 /** undefined / null 제거 + querystring 생성 */
