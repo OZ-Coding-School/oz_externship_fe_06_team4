@@ -130,21 +130,24 @@ export default function CommunityDetailPage() {
 
   // 현재 로그인한 사용자 정보 가져오기
   useEffect(() => {
-    // TODO: 실제 사용자 정보를 가져오는 API 호출로 교체 필요
-    // 예: const userData = await getCurrentUser()
-    // setCurrentUserId(userData.id)
-    
-    // 임시: localStorage나 context에서 사용자 ID 가져오기
-    const userDataString = localStorage.getItem('user')
-    if (userDataString) {
-      try {
-        const userData = JSON.parse(userDataString)
-        setCurrentUserId(userData.id)
-      } catch (err) {
-        console.error('사용자 정보 파싱 실패:', err)
+    if (loggedIn) {
+      const userDataString = localStorage.getItem('user')
+      if (userDataString) {
+        try {
+          const userData = JSON.parse(userDataString)
+          setCurrentUserId(userData.id)
+          console.log('현재 로그인한 사용자 ID:', userData.id)
+        } catch (err) {
+          console.error('사용자 정보 파싱 실패:', err)
+          setCurrentUserId(null)
+        }
+      } else {
+        setCurrentUserId(null)
       }
+    } else {
+      setCurrentUserId(null)
     }
-  }, [])
+  }, [loggedIn])
 
   // 멘션 모달 외부 클릭 감지
   useEffect(() => {
@@ -522,8 +525,8 @@ export default function CommunityDetailPage() {
             {post.author.nickname}
           </span>
           
-          {/* 작성자 본인인 경우에만 수정/삭제 버튼 표시 */}
-          {isAuthor && (
+          {/* 작성자 본인이고 로그인한 경우에만 수정/삭제 버튼 표시 */}
+          {loggedIn && isAuthor && (
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate(`/community/${postId}/edit`)}
@@ -580,7 +583,7 @@ export default function CommunityDetailPage() {
       {/* 좋아요 / 공유하기 */}
       <div className="mt-10 flex justify-end gap-3">
         <button
-          className={`flex items-center gap-1 rounded-full border-2 px-4 py-2 text-[12px] transition-all ${isLiked
+          className={`flex items-center gap-1 rounded-full border px-4 py-2 text-[12px] transition-all ${isLiked
             ? 'border-[#6201E0] bg-[#F5EFFF] text-[#6201E0]'
             : 'border-[#CECECE] bg-white text-[#707070]'
             }`}
@@ -667,7 +670,7 @@ export default function CommunityDetailPage() {
                 className={`
                 rounded-full px-5 py-1.5 text-[16px] font-medium transition-all
                 ${!newComment.trim() || isSubmitting
-                    ? 'bg-[#E5E5E5] text-[#9D9D9D] cursor-not-allowed'
+                    ? 'bg-[#ECECEC] text-[#4D4D4D] border border-[#CECECE] cursor-not-allowed'
                     : 'bg-[#EFE6FC] text-[#6201E0] border-2 border-[#6201E0] hover:bg-[#DED3F5] active:scale-95'
                   }
               `}
@@ -765,7 +768,7 @@ export default function CommunityDetailPage() {
                       <span className="text-[16px] text-[#9D9D9D]">
                         {formatTimeAgo(comment.created_at)}
                       </span>
-                      {loggedIn && (
+                      {loggedIn && currentUserId === comment.author.id && (
                         <>
                           <span className="text-[16px] text-[#9D9D9D]">|</span>
                           <button
