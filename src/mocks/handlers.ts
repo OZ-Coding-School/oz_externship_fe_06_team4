@@ -268,6 +268,49 @@ export const handlers = [
   }),
 
   /**
+   * 2-1) 게시글 작성
+   * POST /api/v1/posts
+   * - 로그인 필요
+   */
+  http.post('*/api/v1/posts', async ({ request }) => {
+    /* 임시 테스트를 위해 주석 처리 (로그인 없이도 가능)
+    if (!isAuthenticated(request)) {
+      return HttpResponse.json(
+        { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
+        { status: 401 }
+      )
+    }
+    */
+
+    const body = (await request.json()) as {
+      title: string
+      content: string
+      category_id: number
+    }
+
+    const newPost: CommunityPostListItem = {
+      id: postsStore.length + 1,
+      title: body.title,
+      content_preview: body.content.substring(0, 100),
+      author: { id: 100, nickname: '로그인유저', profile_img_url: null },
+      created_at: nowISO(),
+      updated_at: nowISO(),
+      category_id: body.category_id,
+      thumbnail_img_url: null,
+      like_count: 0,
+      comment_count: 0,
+      view_count: 0,
+    }
+
+    postsStore.unshift(newPost) // 최신글이 위로 오도록 앞에 추가
+
+    return HttpResponse.json(
+      { detail: '게시글이 등록되었습니다.', pk: newPost.id },
+      { status: 201 }
+    )
+  }),
+
+  /**
    * 3) 게시글 상세
    * GET /api/v1/posts/{postId}
    * - 로그인 불필요

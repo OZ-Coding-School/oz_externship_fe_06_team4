@@ -82,7 +82,7 @@ export async function createCommunityPost(
   token?: string
 ): Promise<CreateCommunityPostResponse> {
   const res = await api.post<CreateCommunityPostResponse>(
-    '/api/v1/posts/',
+    '/api/v1/posts',
     body,
     { headers: { ...withAuth(token) } }
   )
