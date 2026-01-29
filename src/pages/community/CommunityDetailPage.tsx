@@ -509,7 +509,7 @@ export default function CommunityDetailPage() {
           {post.title}
         </h1>
 
-        <div className="flex flex-col items-end gap-2 mt-6">
+        <div className="flex flex-col items-end gap-2 ">
           {/* 프로필 이미지 + 닉네임 (가로 배치) */}
           <div className="flex items-center gap-2">
             <img
@@ -524,33 +524,35 @@ export default function CommunityDetailPage() {
               {post.author.nickname}
             </span>
           </div>
-
-          {/* 작성자 본인이고 로그인한 경우에만 수정/삭제 버튼 표시 */}
-          {loggedIn && isAuthor && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigate(`/community/${postId}/edit`)}
-                className="text-[14px] text-[#6201E0] hover:underline"
-              >
-                수정
-              </button>
-              <span className="text-[14px] text-[#CECECE]">|</span>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="text-[14px] text-[#6201E0] hover:underline"
-              >
-                삭제
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
       {/* 메타 정보 */}
-      <div className="mt-3 flex items-center gap-4 text-[16px] text-[#9D9D9D]">
-        <span>조회수 {post.view_count.toLocaleString()}</span>
-        <span>좋아요 {likeCount.toLocaleString()}</span>
-        <span>{formatTimeAgo(post.created_at)}</span>
+      <div className="mt-8 flex items-center justify-between">
+        <div className="flex items-center gap-4 text-[16px] text-[#9D9D9D]">
+          <span>조회수 {post.view_count.toLocaleString()}</span>
+          <span>좋아요 {likeCount.toLocaleString()}</span>
+          <span>{formatTimeAgo(post.created_at)}</span>
+        </div>
+
+        {/* 작성자 본인이고 로그인한 경우에만 수정/삭제 버튼 표시 */}
+        {loggedIn && isAuthor && (
+          <div className="flex items-center gap-2 text-[16px] text-[#9D9D9D]">
+            <button
+              onClick={() => navigate(`/community/${postId}/edit`)}
+              className="hover:text-[#6201E0]"
+            >
+              수정
+            </button>
+            <span>|</span>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="hover:text-[#6201E0]"
+            >
+              삭제
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 구분선 */}
