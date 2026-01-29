@@ -467,7 +467,7 @@ export const handlers = [
     const list = commentsStore[pid] ?? []
     const results = list.map((c) => ({
       ...c,
-      is_author: authenticated ? c.author.id === 1 : undefined,
+      is_author: authenticated ? c.author.id === 99 : undefined,
     }))
 
     return HttpResponse.json({
@@ -505,7 +505,7 @@ export const handlers = [
     const newComment: Comment = {
       id: nextCommentId++,
       content,
-      author: { id: 1, nickname: '로그인유저', profile_img_url: null },
+      author: { id: 99, nickname: '로그인유저', profile_img_url: null }, 
       created_at: nowISO(),
       updated_at: nowISO(),
     }

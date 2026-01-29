@@ -78,14 +78,7 @@ export default function CommunityDetailPage() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   // 현재 로그인한 사용자가 게시글 작성자인지 확인 (currentUserId와 post.author.id 비교)
-  const isAuthor = loggedIn && currentUserId !== null && post !== null && post.author.id === currentUserId
-
-  // 디버깅용 로그
-  console.log('=== isAuthor 판단 ===')
-  console.log('loggedIn:', loggedIn)
-  console.log('currentUserId:', currentUserId)
-  console.log('post?.author?.id:', post?.author?.id)
-  console.log('isAuthor 결과:', isAuthor)
+  const isAuthor = loggedIn && currentUserId !== null && post !== null && Number(post.author.id) === Number(currentUserId)
 
   // 무한 스크롤
   const [page, setPage] = useState(1)
@@ -145,7 +138,6 @@ export default function CommunityDetailPage() {
         try {
           const userData = await getCurrentUser()
           setCurrentUserId(userData.id)
-          console.log('현재 로그인한 사용자 ID:', userData.id)
         } catch (err) {
           console.error('사용자 정보 조회 실패:', err)
           setCurrentUserId(null)
@@ -797,7 +789,8 @@ export default function CommunityDetailPage() {
                       <span className="text-[16px] text-[#9D9D9D]">
                         {formatTimeAgo(comment.created_at)}
                       </span>
-                      {loggedIn && currentUserId === comment.author.id && (
+                      
+                      {loggedIn && Number(currentUserId) === Number(comment.author.id) && (
                         <>
                           <span className="text-[16px] text-[#9D9D9D]">|</span>
                           <button
