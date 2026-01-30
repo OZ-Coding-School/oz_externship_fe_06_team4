@@ -7,6 +7,7 @@ import {
   createCommunityComment,
   likeCommunityPost,
   unlikeCommunityPost,
+  deleteCommunityPost,
   isLoggedIn,
   getCurrentUser,
 } from './../../api/api'
@@ -111,6 +112,7 @@ export default function CommunityDetailPage() {
 
   // 게시글 삭제 모달
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // 멘션 기능
   const [showMentionModal, setShowMentionModal] = useState(false)
@@ -478,16 +480,19 @@ export default function CommunityDetailPage() {
 
   // 게시글 삭제
   const handleDeletePost = async () => {
-    try {
-      // TODO: 실제 API 호출로 교체 필요
-      // await deleteCommunityPost(Number(postId))
+    if (!postId) return
 
+    try {
+      setIsDeleting(true)
+      await deleteCommunityPost(Number(postId))
+      
       setShowDeleteModal(false)
       window.alert('게시글이 삭제되었습니다.')
       navigate('/community')
     } catch (err) {
       console.error('게시글 삭제 실패:', err)
       window.alert('게시글 삭제에 실패했습니다.')
+      setIsDeleting(false)
     }
   }
 
@@ -825,7 +830,7 @@ export default function CommunityDetailPage() {
 
       {/* 댓글 삭제 확인 팝업 */}
       {deleteCommentId !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent">
           <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
             <h2 className="text-left text-[16px] font-regular text-[#303030]">
               댓글을 삭제하시겠습니까?
@@ -867,40 +872,47 @@ export default function CommunityDetailPage() {
 
       {/* 게시글 삭제 확인 팝업 */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="w-[428px] h-[165px] rounded-[24px] bg-white p-10 shadow-xl border border-[#E5E5E5] flex flex-col">
-            <h2 className="text-left text-[16px] font-regular text-[#303030]">
-              게시글을 삭제하시겠습니까?
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(18, 18, 18, 0.7)' }}>
+          <div className="w-[428px] h-[182px] rounded-[24px] bg-white px-8 pt-8 pb-6 shadow-xl flex flex-col justify-between">
+            <h2 className="text-left text-[16px] font-regular text-[#121212] leading-relaxed">
+              삭제된 내용은 복구할 수 없습니다.<br />
+              정말로 삭제하시겠습니까?
             </h2>
 
-            <div className="flex justify-end gap-3 mt-auto -mb-4">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
                 className="
-                  w-[76px] h-[42px]
+                  w-[76px] h-[43px]
                   rounded-full
                   bg-[#EFE6FC]
-                  text-[16px] font-medium text-[#4E01B3]
+                  text-[16px] font-semibold text-[#6201E0]
                   flex items-center justify-center
                   hover:bg-[#E1D2FA]
                   transition-colors
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
                 취소
               </button>
               <button
                 onClick={handleDeletePost}
+                disabled={isDeleting}
                 className="
-                  w-[76px] h-[42px]
+                  w-[76px] h-[43px]
                   rounded-full
                   bg-[#6201E0]
-                  text-[16px] font-medium text-white
+                  text-[16px] font-semibold text-white
                   flex items-center justify-center
                   hover:bg-[#5200BE]
                   transition-colors
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
-                확인
+                {isDeleting ? '삭제 중...' : '삭제'}
               </button>
             </div>
           </div>

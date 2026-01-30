@@ -1,4 +1,3 @@
-
 import axios from 'axios'
 import type {
   CommunityCategory,
@@ -99,12 +98,11 @@ export async function createCommunityPost(
 }
 
 export async function getCommunityPostDetail(postId: number) {
-  // ✅ /api/v1/posts/{postId} 가 명세면 아래처럼 맞추는 게 안전
   const res = await api.get(`/api/v1/posts/${postId}`)
   return res.data
 }
 
-export async function deleteCommunityPost(postId: number) {
+export async function deleteCommunityPost(postId: number): Promise<void> {
   const token = getAccessToken()
   const res = await api.delete(`/api/v1/posts/${postId}`, {
     headers: { ...withAuth(token || undefined) },
