@@ -292,8 +292,6 @@ export const handlers = [
    * GET /api/v1/posts/categories
    */
   http.get('*/api/v1/posts/categories', () => {
-    // "전체"를 서버가 줄 수도/안 줄 수도 있는데, 피그마엔 "전체"가 있으니 포함
-    // 필요하면 여기서 "전체" 빼도 됨.
     return HttpResponse.json(
       CATEGORIES.filter((c) => c.id !== 1).map((c) => ({
         id: c.id,
@@ -344,15 +342,6 @@ export const handlers = [
    * - 로그인 필요
    */
   http.post('*/api/v1/posts', async ({ request }) => {
-    /* 임시 테스트를 위해 주석 처리 (로그인 없이도 가능)
-    if (!isAuthenticated(request)) {
-      return HttpResponse.json(
-        { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
-        { status: 401 }
-      )
-    }
-    */
-
     const body = (await request.json()) as {
       title: string
       content: string
@@ -418,11 +407,55 @@ export const handlers = [
       view_count: viewCount,
       created_at: post.created_at,
       updated_at: post.updated_at,
-      is_liked: authenticated ? false : undefined, // 연동 전엔 false
-      // is_author는 API 명세에 없으므로 제거 - 프론트에서 currentUserId와 post.author.id 비교로 판단
+      is_liked: authenticated ? false : undefined,
     }
 
     return HttpResponse.json(detail)
+  }),
+
+  /**
+   * 3-1) 게시글 수정
+   * PUT /api/v1/posts/{postId}
+   * - 로그인 필요
+   */
+  http.put('*/api/v1/posts/:postId', async ({ request, params }) => {
+    if (!isAuthenticated(request)) {
+      return HttpResponse.json(
+        { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
+        { status: 401 }
+      )
+    }
+
+    const pid = Number(params.postId)
+    const post = postsStore.find((p) => p.id === pid)
+
+    if (!post) {
+      return HttpResponse.json(
+        { detail: '게시글을 찾을 수 없습니다.' },
+        { status: 404 }
+      )
+    }
+
+    const body = (await request.json()) as {
+      title: string
+      content: string
+      category_id: number
+    }
+
+    // 게시글 업데이트
+    post.title = body.title
+    post.content_preview = body.content.substring(0, 100)
+    post.category_id = body.category_id
+    post.updated_at = nowISO()
+
+    // 전체 본문 업데이트
+    fullContentStore[pid] = body.content
+
+    // Save to localStorage
+    saveToLS(LS_POSTS_KEY, postsStore)
+    saveToLS(LS_FULL_CONTENT_KEY, fullContentStore)
+
+    return HttpResponse.json({ detail: '게시글이 수정되었습니다.' })
   }),
 
   /**
@@ -451,6 +484,14 @@ export const handlers = [
     delete commentsStore[pid]
     delete likesStore[pid]
     delete viewCountStore[pid]
+    delete fullContentStore[pid]
+
+    // Save to localStorage
+    saveToLS(LS_POSTS_KEY, postsStore)
+    saveToLS(LS_FULL_CONTENT_KEY, fullContentStore)
+    saveToLS(LS_COMMENTS_KEY, commentsStore)
+    saveToLS(LS_LIKES_KEY, likesStore)
+    saveToLS(LS_VIEWS_KEY, viewCountStore)
 
     return HttpResponse.json({ detail: '게시글이 삭제되었습니다.' })
   }),
@@ -513,6 +554,9 @@ export const handlers = [
     commentsStore[pid] = commentsStore[pid] ?? []
     commentsStore[pid].push(newComment)
 
+    // Save to localStorage
+    saveToLS(LS_COMMENTS_KEY, commentsStore)
+
     return HttpResponse.json(
       { detail: '댓글이 등록되었습니다.' },
       { status: 201 }
@@ -551,6 +595,9 @@ export const handlers = [
       target.content = content || target.content
       target.updated_at = nowISO()
 
+      // Save to localStorage
+      saveToLS(LS_COMMENTS_KEY, commentsStore)
+
       return HttpResponse.json({ detail: '댓글이 수정되었습니다.' })
     }
   ),
@@ -577,6 +624,9 @@ export const handlers = [
       const next = list.filter((c) => c.id !== cid)
       commentsStore[pid] = next
 
+      // Save to localStorage
+      saveToLS(LS_COMMENTS_KEY, commentsStore)
+
       return HttpResponse.json({ detail: '댓글이 삭제되었습니다.' })
     }
   ),
@@ -596,6 +646,10 @@ export const handlers = [
 
     const pid = Number(params.postId)
     likesStore[pid] = (likesStore[pid] ?? 0) + 1
+    
+    // Save to localStorage
+    saveToLS(LS_LIKES_KEY, likesStore)
+
     return HttpResponse.json(
       { detail: '좋아요가 등록되었습니다.' },
       { status: 201 }
@@ -618,6 +672,10 @@ export const handlers = [
     const pid = Number(params.postId)
     const current = likesStore[pid] ?? 0
     likesStore[pid] = Math.max(0, current - 1)
+    
+    // Save to localStorage
+    saveToLS(LS_LIKES_KEY, likesStore)
+
     return HttpResponse.json({ detail: '좋아요가 취소되었습니다.' })
   }),
 ]

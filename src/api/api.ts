@@ -102,6 +102,19 @@ export async function getCommunityPostDetail(postId: number) {
   return res.data
 }
 
+export async function updateCommunityPost(
+  postId: number,
+  body: CreateCommunityPostBody,
+  token?: string
+): Promise<void> {
+  const res = await api.put(
+    `/api/v1/posts/${postId}`,
+    body,
+    { headers: { ...withAuth(token) } }
+  )
+  return res.data
+}
+
 export async function deleteCommunityPost(postId: number): Promise<void> {
   const token = getAccessToken()
   const res = await api.delete(`/api/v1/posts/${postId}`, {
@@ -182,6 +195,7 @@ export const communityApi = {
   getPosts: getCommunityPosts,
   createPost: createCommunityPost,
   getPostDetail: getCommunityPostDetail,
+  updatePost: updateCommunityPost,
   deletePost: deleteCommunityPost,
   getComments: getCommunityComments,
   createComment: createCommunityComment,
