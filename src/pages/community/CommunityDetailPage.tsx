@@ -208,11 +208,15 @@ export default function CommunityDetailPage() {
         setLoading(true)
         setError(null)
 
-        const postData = await getCommunityPostDetail(Number(postId))
-        const commentData = await getCommunityComments(Number(postId), {
-          page: 1,
-          page_size: COMMENTS_PER_PAGE
-        })
+        // 최소 200ms 로딩 시간 보장
+        const [postData, commentData] = await Promise.all([
+          getCommunityPostDetail(Number(postId)),
+          getCommunityComments(Number(postId), {
+            page: 1,
+            page_size: COMMENTS_PER_PAGE
+          }),
+          new Promise(resolve => setTimeout(resolve, 200))
+        ])
 
         setPost(postData)
         setComments(commentData.results || [])
