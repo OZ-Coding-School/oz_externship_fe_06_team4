@@ -5,6 +5,7 @@ import {
   getCommunityPostDetail,
   getCommunityComments,
   createCommunityComment,
+  deleteCommunityComment,
   likeCommunityPost,
   unlikeCommunityPost,
   deleteCommunityPost,
@@ -443,7 +444,13 @@ export default function CommunityDetailPage() {
 
   // 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
+    if (!postId) return
+
     try {
+      // API 호출로 실제 댓글 삭제 (postId와 commentId 모두 필요)
+      await deleteCommunityComment(Number(postId), commentId)
+
+      // 프론트엔드 상태 업데이트
       setComments(prev => prev.filter(c => c.id !== commentId))
 
       if (post) {
