@@ -1,6 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
@@ -10,6 +11,46 @@ import type {
   CommunityPostListItem,
   SearchFilterOption,
 } from '../../types'
+
+// 로딩 애니메이션 컴포넌트
+const LoadingDots = () => {
+  const dotVariants = {
+    initial: { y: 0 },
+    animate: { y: -10 }
+  }
+
+  const containerVariants = {
+    initial: {},
+    animate: {
+      transition: {
+        staggerChildren: 0.2
+      }
+    }
+  }
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="initial"
+      animate="animate"
+      className="flex items-center justify-center gap-2"
+    >
+      {[0, 1, 2].map((index) => (
+        <motion.div
+          key={index}
+          variants={dotVariants}
+          transition={{
+            duration: 0.5,
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut"
+          }}
+          className="w-3 h-3 rounded-full bg-[#6201E0]"
+        />
+      ))}
+    </motion.div>
+  )
+}
 
 type PaginatedResponse<T> = {
   count: number
@@ -77,6 +118,7 @@ export default function CommunityListPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   
   const [filter, setFilter] = useState<SearchFilterOption>('title_or_content')
   const [keyword, setKeyword] = useState('')
@@ -121,6 +163,10 @@ export default function CommunityListPage() {
 
     try {
       setIsLoading(true)
+      if (isInitial) {
+        setIsInitialLoading(true)
+      }
+      
       const params = {
         page: targetPage,
         page_size: 10,
@@ -133,9 +179,11 @@ export default function CommunityListPage() {
         sort: SORT_PARAM[sortKey],
       }
 
-      const res = (await communityApi.getPosts(
-        params as any
-      )) as PaginatedResponse<CommunityPostListItem>
+      // 최소 200ms 로딩 시간 보장 (초기 로딩 시)
+      const [res] = await Promise.all([
+        communityApi.getPosts(params as any) as Promise<PaginatedResponse<CommunityPostListItem>>,
+        isInitial ? new Promise(resolve => setTimeout(resolve, 200)) : Promise.resolve()
+      ])
 
       if (isInitial) {
         setPosts(res.results || [])
@@ -149,6 +197,7 @@ export default function CommunityListPage() {
       console.error('Failed to fetch posts:', err)
     } finally {
       setIsLoading(false)
+      setIsInitialLoading(false)
     }
   }
 
@@ -283,7 +332,11 @@ export default function CommunityListPage() {
         <div className="mt-[16px] h-[1px] w-full bg-[#DCDCDC]" />
 
         <div className="mt-[10px] pb-20">
-          {posts.length === 0 && !isLoading ? (
+          {isInitialLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <LoadingDots />
+            </div>
+          ) : posts.length === 0 ? (
             <div className="px-[24px] py-[24px] text-[14px] text-[#777777]">
               게시글이 없습니다.
             </div>
@@ -302,9 +355,7 @@ export default function CommunityListPage() {
               {/* 무한 스크롤 트리거 */}
               {hasMore && (
                 <div ref={observerRef} className="py-10 text-center">
-                  <div className="text-[14px] text-[#777777]">
-                    {isLoading ? '게시글을 불러오는 중...' : ''}
-                  </div>
+                  {isLoading && <LoadingDots />}
                 </div>
               )}
             </>
