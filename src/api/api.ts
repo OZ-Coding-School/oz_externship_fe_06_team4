@@ -190,6 +190,44 @@ export async function unlikeCommunityPost(postId: number) {
   return res.data
 }
 
+// =============================
+// Image Upload API (Presigned URL)
+// =============================
+
+export interface PresignedUrlResponse {
+  presigned_url: string
+  img_url: string
+  key: string
+}
+
+/**
+ * S3 이미지 업로드를 위한 Presigned URL 발급 요청
+ * @param fileName - 업로드할 파일명 (예: "example.png")
+ * @returns presigned_url, img_url, key
+ */
+export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
+  const token = getAccessToken()
+  const res = await api.put<PresignedUrlResponse>(
+    '/api/v1/questions/presigned-url',
+    { file_name: fileName },
+    { headers: { ...withAuth(token || undefined) } }
+  )
+  return res.data
+}
+
+/**
+ * Presigned URL을 사용하여 S3에 파일 업로드
+ * @param presignedUrl - 백엔드에서 발급받은 Presigned URL
+ * @param file - 업로드할 파일
+ */
+export async function uploadToS3(presignedUrl: string, file: File): Promise<void> {
+  await axios.put(presignedUrl, file, {
+    headers: {
+      'Content-Type': file.type,
+    },
+  })
+}
+
 export const communityApi = {
   getCategories: getCommunityCategories,
   getPosts: getCommunityPosts,
