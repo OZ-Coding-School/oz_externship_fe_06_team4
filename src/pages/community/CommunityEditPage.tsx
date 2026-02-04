@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -29,7 +29,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, getCommunityPostDetail, updateCommunityPost, getAccessToken } from '../../api/api'
+import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
 import type { CommunityCategory } from '../../types'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
@@ -50,6 +50,7 @@ function replaceInfo(
   const original = textarea.value
   const newValue = original.substring(0, start) + text + original.substring(end)
   
+
   return {
     value: newValue,
     newSelectionStart: cursorInfo?.newStart ?? start + text.length,
@@ -57,9 +58,9 @@ function replaceInfo(
   }
 }
 
-export default function CommunityEditPage() {
+
+export default function CommunityCreatePage() {
   const navigate = useNavigate()
-  const { postId } = useParams<{ postId: string }>()
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])
@@ -67,7 +68,7 @@ export default function CommunityEditPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingPost, setIsLoadingPost] = useState(true)
+  const [isUploading, setIsUploading] = useState(false)
 
   // --- UI ---
   const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false)
@@ -82,12 +83,12 @@ export default function CommunityEditPage() {
   const fontSizeRef = useRef<HTMLDivElement>(null)
   const textColorRef = useRef<HTMLDivElement>(null)
   const listMenuRef = useRef<HTMLDivElement>(null)
-  const objectUrlsRef = useRef<string[]>([])
   
+
   const [historyStack, setHistoryStack] = useState<string[]>([''])
   const [historyIndex, setHistoryIndex] = useState(0)
 
-  // 카테고리 불러오기
+
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -100,34 +101,6 @@ export default function CommunityEditPage() {
     fetchCategories()
   }, [])
 
-  // 기존 게시글 데이터 불러오기
-  useEffect(() => {
-    async function fetchPost() {
-      if (!postId) {
-        alert('게시글 ID가 없습니다.')
-        navigate('/community')
-        return
-      }
-
-      try {
-        setIsLoadingPost(true)
-        const postData = await getCommunityPostDetail(Number(postId))
-        
-        setCategoryId(postData.category.id)
-        setTitle(postData.title)
-        setContent(postData.content)
-        setHistoryStack([postData.content])
-        setHistoryIndex(0)
-      } catch (error) {
-        console.error('게시글 불러오기 실패:', error)
-        alert('게시글을 불러오는데 실패했습니다.')
-        navigate('/community')
-      } finally {
-        setIsLoadingPost(false)
-      }
-    }
-    fetchPost()
-  }, [postId, navigate])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -145,12 +118,14 @@ export default function CommunityEditPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+
   const pushToHistory = useCallback((newContent: string) => {
     if (newContent === historyStack[historyIndex]) return 
 
     const newHistory = historyStack.slice(0, historyIndex + 1)
     newHistory.push(newContent)
     
+
     if (newHistory.length > 50) {
       newHistory.shift()
     }
@@ -175,12 +150,14 @@ export default function CommunityEditPage() {
     }
   }
 
+
   const updateContent = (newContent: string, saveToHistory = true) => {
     setContent(newContent)
     if (saveToHistory) {
       pushToHistory(newContent)
     }
   }
+
 
   const applyParams = (
     transform: (sel: string, all: string, start: number, end: number) => { text: string; cursorOffset?: number; selectLength?: number }
@@ -193,7 +170,9 @@ export default function CommunityEditPage() {
 
     const result = replaceInfo(textarea, text, start, end)
     
+
     updateContent(result.value, true)
+
 
     setTimeout(() => {
       textarea.focus()
@@ -204,7 +183,8 @@ export default function CommunityEditPage() {
     }, 0)
   }
 
-  // --- 툴바 기능 ---
+  // --- 툴바  ---
+
   const toggleWrapper = (prefix: string, suffix: string, placeholder = 'text') => {
     applyParams((sel) => {
       if (sel.startsWith(prefix) && sel.endsWith(suffix)) {
@@ -229,6 +209,7 @@ export default function CommunityEditPage() {
   const handleUnderline = () => toggleWrapper('<u>', '</u>', 'Underlined text')
   const handleStrikethrough = () => toggleWrapper('~~', '~~', 'Strikethrough text')
 
+  // 폰트사이즈 , 컬러 
   const handleFontSize = (size: string) => {
     setCurrentFontSize(size)
     toggleWrapper(`<span style="font-size:${size}px">`, '</span>', 'Text')
@@ -241,6 +222,7 @@ export default function CommunityEditPage() {
     setIsTextColorMenuOpen(false)
   }
   
+  // 링크
   const handleLink = () => {
     const url = window.prompt('URL을 입력하세요:', 'https://')
     if (!url) return
@@ -255,28 +237,61 @@ export default function CommunityEditPage() {
     })
   }
 
+  // 이미지 - Presigned URL 방식
   const handleImageClick = () => {
+    if (isUploading) {
+      alert('이미지 업로드 중입니다. 잠시만 기다려주세요.')
+      return
+    }
     fileInputRef.current?.click()
   }
-  
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const url = URL.createObjectURL(file)
-    objectUrlsRef.current.push(url)
+    // 파일 크기 체크 (10MB 제한)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      e.target.value = ''
+      return
+    }
 
-    applyParams(() => {
-      const alt = file.name
-      return {
-        text: `![${alt}](${url})`,
-        cursorOffset: 0,
-        selectLength: 0
-      }
-    })
-    
-    e.target.value = ''
+    // 이미지 파일 타입 체크
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.')
+      e.target.value = ''
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      // 1. Presigned URL 요청
+      const { presigned_url, img_url } = await getPresignedUrl(file.name)
+
+      // 2. S3에 파일 업로드
+      await uploadToS3(presigned_url, file)
+
+      // 3. 마크다운에 이미지 URL 삽입
+      applyParams(() => {
+        const alt = file.name
+        return {
+          text: `![${alt}](${img_url})`,
+          cursorOffset: 0,
+          selectLength: 0
+        }
+      })
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error)
+      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsUploading(false)
+      e.target.value = ''
+    }
   }
+
 
   const toggleLinePrefix = (prefix: string) => {
     const textarea = textareaRef.current
@@ -300,6 +315,7 @@ export default function CommunityEditPage() {
     
     const newText = newLines.join('\n')
     
+    replaceInfo(textarea, newText, lineStart, lineEnd)
     const res = replaceInfo(textarea, newText, lineStart, lineEnd)
     updateContent(res.value)
     
@@ -313,11 +329,11 @@ export default function CommunityEditPage() {
     toggleLinePrefix('1. ')
     setIsListMenuOpen(false)
   }
-  
   const handleUnorderedList = () => {
     toggleLinePrefix('- ')
     setIsListMenuOpen(false)
   }
+  
 
   const handleAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
     toggleWrapper(`<div align="${align}">`, '</div>', 'Content')
@@ -344,6 +360,7 @@ export default function CommunityEditPage() {
     const lines = linesContent.split('\n')
     
     const newLines = lines.map(line => {
+ 
       if (line.startsWith('> ')) return line.substring(2)
       if (line.startsWith('>')) return line.substring(1)
       if (line.startsWith('  ')) return line.substring(2) 
@@ -367,7 +384,6 @@ export default function CommunityEditPage() {
     })
   }
 
-  // 수정 완료 처리
   const handleSubmit = async () => {
     if (categoryId === null) {
       alert('카테고리를 선택해주세요.')
@@ -385,30 +401,20 @@ export default function CommunityEditPage() {
     try {
       setIsLoading(true)
       const token = getAccessToken()
+      const data = await createCommunityPost({
+        category_id: categoryId,
+        title,
+        content,
+      }, token || undefined)
       
-      // 게시글 수정 API 호출
-      await updateCommunityPost(
-        Number(postId),
-        {
-          category_id: categoryId,
-          title,
-          content,
-        },
-        token || undefined
-      )
-      
-      alert('게시글이 수정되었습니다.')
-      navigate(`/community/${postId}`)
+      alert('게시글이 등록되었습니다.')
+      navigate(`/community/${data.pk}`)
     } catch (error) {
-      console.error('게시글 수정 실패:', error)
-      alert('게시글 수정에 실패했습니다.')
+      console.error('게시글 등록 실패:', error)
+      alert('게시글 등록에 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (isLoadingPost) {
-    return <div className="py-20 text-center">로딩 중...</div>
   }
 
   return (
@@ -422,7 +428,7 @@ export default function CommunityEditPage() {
           <div className="flex w-full flex-col items-start gap-10">
             <div className="flex w-full flex-col items-start gap-5">
               <h1 className="font-['Pretendard'] text-[32px] font-bold tracking-[-0.64px] text-[#111111]">
-                커뮤니티 게시글 수정
+                커뮤니티 게시글 작성
               </h1>
               <div className="h-px w-full bg-[#E5E7EB]" />
             </div>
@@ -510,6 +516,7 @@ export default function CommunityEditPage() {
 
                 <div className="h-6 w-px bg-[#E5E7EB]" />
 
+
                 <div className="flex items-center gap-1">
                   <button type="button" onClick={handleBold} className="p-1 hover:bg-gray-100 rounded"><ToolbarBoldIcon /></button>
                   <button type="button" onClick={handleItalic} className="p-1 hover:bg-gray-100 rounded"><ToolbarItalicIcon /></button>
@@ -545,40 +552,52 @@ export default function CommunityEditPage() {
                   <button type="button" onClick={handleLink} className="p-1 hover:bg-gray-100 rounded">
                      <ToolbarLinkIcon />
                   </button>
-                  <button type="button" onClick={handleImageClick} className="p-1 hover:bg-gray-100 rounded">
-                     <ToolbarImageIcon />
+                  <button 
+                    type="button" 
+                    onClick={handleImageClick} 
+                    className={`p-1 hover:bg-gray-100 rounded ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                    disabled={isUploading}
+                  >
+                     {isUploading ? (
+                       <span className="text-xs text-gray-500">업로드중...</span>
+                     ) : (
+                       <ToolbarImageIcon />
+                     )}
                   </button>
                 </div>
               </div>
 
+
               <div className="flex w-full items-center justify-center gap-6 border-t border-[#F3F4F6] pt-3">
-                 {/* 리스트 */}
-                 <div className="relative" ref={listMenuRef}>
-                   <button
-                     type="button"
-                     className="flex items-center hover:bg-gray-100 p-1 rounded transition-colors"
-                     onClick={() => setIsListMenuOpen(!isListMenuOpen)}
-                   >
-                     <ToolbarListGroupIcon />
-                   </button>
-                   
-                   {isListMenuOpen && (
-                     <div className="absolute top-full left-0 mt-1 z-50 w-32 rounded-lg border border-[#E1E1E2] bg-white py-1 shadow-lg">
-                       <button
-                         onClick={handleUnorderedList}
-                         className="flex w-full items-center px-4 py-2 text-sm text-[#52525B] hover:bg-gray-50"
-                       >
-                         • 불렛 리스트
-                       </button>
-                       <button
-                         onClick={handleOrderedList}
-                         className="flex w-full items-center px-4 py-2 text-sm text-[#52525B] hover:bg-gray-50"
-                       >
-                         1. 숫자 리스트
-                       </button>
-                     </div>
-                   )}
-                 </div>
+
+                 {/* 리스트 (Bullet/Ordered) */}
+            <div className="relative" ref={listMenuRef}>
+              <button
+                type="button"
+                className="flex items-center hover:bg-gray-100 p-1 rounded transition-colors"
+                onClick={() => setIsListMenuOpen(!isListMenuOpen)}
+              >
+                <ToolbarListGroupIcon />
+              </button>
+              
+              {isListMenuOpen && (
+                <div className="absolute top-full left-0 mt-1 z-50 w-32 rounded-lg border border-[#E1E1E2] bg-white py-1 shadow-lg">
+                  <button
+                    onClick={handleUnorderedList}
+                    className="flex w-full items-center px-4 py-2 text-sm text-[#52525B] hover:bg-gray-50"
+                  >
+                    • 불렛 리스트
+                  </button>
+                  <button
+                    onClick={handleOrderedList}
+                    className="flex w-full items-center px-4 py-2 text-sm text-[#52525B] hover:bg-gray-50"
+                  >
+                    1. 숫자 리스트
+                  </button>
+                </div>
+              )}
+            </div>
+                 
 
                  <div className="flex items-center gap-2">
                    <button type="button" onClick={() => handleAlign('left')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignLeftIcon /></button>
@@ -587,6 +606,7 @@ export default function CommunityEditPage() {
                    <button type="button" onClick={() => handleAlign('justify')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignJustifyIcon /></button>
                  </div>
 
+ 
                  <div className="flex items-center gap-2">
                     <button type="button" onClick={handleLineHeight} className="p-1 hover:bg-gray-100 rounded">
                        <ToolbarLineHeightIcon />
@@ -599,6 +619,7 @@ export default function CommunityEditPage() {
                     </button>
                  </div>
 
+
                  <div className="flex items-center gap-1">
                    <button type="button" onClick={handleEraser} className="p-1 hover:bg-gray-100 rounded">
                      <ToolbarEraserIcon />
@@ -608,6 +629,7 @@ export default function CommunityEditPage() {
             </div>
 
             <div className="grid w-full grid-cols-2 bg-[#E5E7EB] p-px gap-px">
+
               <div className="flex h-full min-h-[600px] w-full flex-col bg-white p-6">
                 <div className="mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Markdown Editor</div>
                 <textarea
@@ -628,6 +650,7 @@ export default function CommunityEditPage() {
                 />
               </div>
 
+
               <div className="flex h-full min-h-[600px] w-full flex-col bg-white p-6">
                 <div className="mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Preview</div>
                 <div className="prose prose-sm max-w-none flex-1 overflow-y-auto font-['Pretendard'] text-[14px] leading-relaxed text-black">
@@ -642,13 +665,13 @@ export default function CommunityEditPage() {
                        ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2 pl-2" {...props} />,
                        blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-gray-300 pl-4 py-1 my-2 bg-gray-50 text-gray-600 italic" {...props} />,
                        a: ({node, ...props}) => <a className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer" {...props} />,
-                       img: ({ node, ...props }) => {
-                         if (!props.src || props.src.trim() === '') return null
-                         return <img className="h-auto max-w-full rounded border border-gray-100 shadow-sm" {...props} />
-                       },
-                       code: ({ node, ...props }) => (
-                         <code className="bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm text-red-500" {...props} />
-                       ),
+                          img: ({ node, ...props }) => {
+                            if (!props.src || props.src.trim() === '') return null
+                            return <img className="h-auto max-w-full rounded border border-gray-100 shadow-sm" {...props} />
+                          },
+                          code: ({ node, ...props }) => (
+                            <code className="bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm text-red-500" {...props} />
+                          ),
                        pre: ({node, ...props}) => <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />,
                        span: ({node, ...props}) => <span {...props} />,
                        div: ({node, ...props}) => <div {...props} />,
@@ -662,12 +685,13 @@ export default function CommunityEditPage() {
           </div>
         </div>
 
+
         <button
           onClick={handleSubmit}
           disabled={isLoading}
           className="rounded bg-[#7C3AED] px-10 py-3 text-base font-bold text-white transition-colors hover:bg-[#6D28D9] disabled:bg-gray-400"
         >
-          {isLoading ? '수정 중...' : '수정 완료'}
+          {isLoading ? '등록 중...' : '등록하기'}
         </button>
       </div>
     </div>
