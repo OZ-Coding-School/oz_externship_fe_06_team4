@@ -29,7 +29,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, getAccessToken } from '../../api/api'
+import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
 import type { CommunityCategory } from '../../types'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
@@ -68,6 +68,7 @@ export default function CommunityCreatePage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
 
   // --- UI ---
   const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false)
@@ -82,7 +83,6 @@ export default function CommunityCreatePage() {
   const fontSizeRef = useRef<HTMLDivElement>(null)
   const textColorRef = useRef<HTMLDivElement>(null)
   const listMenuRef = useRef<HTMLDivElement>(null)
-  const objectUrlsRef = useRef<string[]>([])
   
 
   const [historyStack, setHistoryStack] = useState<string[]>([''])
@@ -237,27 +237,59 @@ export default function CommunityCreatePage() {
     })
   }
 
-  // 이미지
+  // 이미지 - Presigned URL 방식
   const handleImageClick = () => {
+    if (isUploading) {
+      alert('이미지 업로드 중입니다. 잠시만 기다려주세요.')
+      return
+    }
     fileInputRef.current?.click()
   }
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    const url = URL.createObjectURL(file)
-    objectUrlsRef.current.push(url)
+    // 파일 크기 체크 (10MB 제한)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      e.target.value = ''
+      return
+    }
 
-    applyParams(() => {
-      const alt = file.name
-      return {
-        text: `![${alt}](${url})`,
-        cursorOffset: 0,
-        selectLength: 0
-      }
-    })
-    
-    e.target.value = ''
+    // 이미지 파일 타입 체크
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드 가능합니다.')
+      e.target.value = ''
+      return
+    }
+
+    try {
+      setIsUploading(true)
+
+      // 1. Presigned URL 요청
+      const { presigned_url, img_url } = await getPresignedUrl(file.name)
+
+      // 2. S3에 파일 업로드
+      await uploadToS3(presigned_url, file)
+
+      // 3. 마크다운에 이미지 URL 삽입
+      applyParams(() => {
+        const alt = file.name
+        return {
+          text: `![${alt}](${img_url})`,
+          cursorOffset: 0,
+          selectLength: 0
+        }
+      })
+    } catch (error) {
+      console.error('이미지 업로드 실패:', error)
+      alert('이미지 업로드에 실패했습니다. 다시 시도해주세요.')
+    } finally {
+      setIsUploading(false)
+      e.target.value = ''
+    }
   }
 
 
@@ -520,8 +552,17 @@ export default function CommunityCreatePage() {
                   <button type="button" onClick={handleLink} className="p-1 hover:bg-gray-100 rounded">
                      <ToolbarLinkIcon />
                   </button>
-                  <button type="button" onClick={handleImageClick} className="p-1 hover:bg-gray-100 rounded">
-                     <ToolbarImageIcon />
+                  <button 
+                    type="button" 
+                    onClick={handleImageClick} 
+                    className={`p-1 hover:bg-gray-100 rounded ${isUploading ? 'opacity-50 cursor-wait' : ''}`}
+                    disabled={isUploading}
+                  >
+                     {isUploading ? (
+                       <span className="text-xs text-gray-500">업로드중...</span>
+                     ) : (
+                       <ToolbarImageIcon />
+                     )}
                   </button>
                 </div>
               </div>
