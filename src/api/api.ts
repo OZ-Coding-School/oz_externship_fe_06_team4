@@ -70,7 +70,7 @@ function withAuth(token?: string) {
 // =============================
 
 export async function getCommunityCategories(): Promise<CommunityCategory[]> {
-  const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories/')
+  const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories')
   return res.data
 }
 
