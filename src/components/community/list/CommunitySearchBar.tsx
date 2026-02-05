@@ -84,7 +84,7 @@ type Props = {
 const FILTER_ITEMS: Array<{ key: SearchFilterOption; label: string }> = [
   { key: 'title', label: '제목' },
   { key: 'content', label: '내용' },
-  { key: 'author', label: '작성자' },
+  { key: 'nickname', label: '작성자' },
 ]
 
 export default function CommunitySearchBar({
@@ -100,7 +100,7 @@ export default function CommunitySearchBar({
 
   // ✅ 기존 기본값이 title_or_content로 들어오면, 피그마 기준으로 '제목'으로 맞춤
   useEffect(() => {
-    if (filter === 'title_or_content') onChangeFilter('title')
+    if (filter === 'all') onChangeFilter('title')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

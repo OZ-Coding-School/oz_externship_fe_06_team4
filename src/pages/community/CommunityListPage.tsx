@@ -90,10 +90,9 @@ function ChevronRightIcon() {
 const ALL_CATEGORY_ID = 0 as const
 
 // 정렬 옵션
-type SortKey = 'views' | 'likes' | 'comments' | 'latest' | 'oldest'
+type SortKey = 'likes' | 'comments' | 'latest' | 'oldest'
 
 const SORT_LABEL: Record<SortKey, string> = {
-  views: '조회순',
   likes: '좋아요 순',
   comments: '댓글 순',
   latest: '최신순',
@@ -102,7 +101,6 @@ const SORT_LABEL: Record<SortKey, string> = {
 
 // 서버 파라미터 매핑
 const SORT_PARAM: Record<SortKey, string> = {
-  views: 'views',
   likes: 'likes',
   comments: 'comments',
   latest: 'latest',
@@ -120,7 +118,7 @@ export default function CommunityListPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(true)
   
-  const [filter, setFilter] = useState<SearchFilterOption>('title_or_content')
+  const [filter, setFilter] = useState<SearchFilterOption>('all')
   const [keyword, setKeyword] = useState('')
 
   // 정렬
