@@ -7,12 +7,17 @@ import App from './App'
 import './index.css'
 
 async function enableMocking() {
+  // 실제 API 서버 연결을 위해 MSW 비활성화
+  return
+
+  /*
   if (!import.meta.env.DEV) return
 
   const { worker } = await import('./mocks/browser')
   return worker.start({
     onUnhandledRequest: 'bypass',
   })
+  */
 }
 
 const queryClient = new QueryClient({
