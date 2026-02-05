@@ -507,7 +507,7 @@ export default function CommunityDetailPage() {
     }
   }
 
-  if (loading) return <div className="py-20 text-center">로딩 중...</div>
+  if (loading) return <LoadingDots />
   if (error)
     return <div className="py-20 text-center text-red-500">{error}</div>
   if (!post) return <div className="py-20 text-center">게시글이 없습니다.</div>
