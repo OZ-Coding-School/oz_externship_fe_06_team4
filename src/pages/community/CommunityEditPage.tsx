@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -29,7 +29,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { api, createCommunityPost, updateCommunityPost, getCommunityPostDetail, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
 import type { CommunityCategory } from '../../types'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
@@ -61,6 +61,8 @@ function replaceInfo(
 
 export default function CommunityCreatePage() {
   const navigate = useNavigate()
+  const { postId } = useParams<{ postId?: string }>()
+  const isEditMode = Boolean(postId)
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])
@@ -69,6 +71,7 @@ export default function CommunityCreatePage() {
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isLoadingPost, setIsLoadingPost] = useState(false)
 
   // --- UI ---
   const [isFontSizeMenuOpen, setIsFontSizeMenuOpen] = useState(false)
@@ -89,6 +92,7 @@ export default function CommunityCreatePage() {
   const [historyIndex, setHistoryIndex] = useState(0)
 
 
+  // 카테고리 목록 불러오기
   useEffect(() => {
     async function fetchCategories() {
       try {
@@ -100,6 +104,34 @@ export default function CommunityCreatePage() {
     }
     fetchCategories()
   }, [])
+
+  // 수정 모드일 때 기존 게시글 데이터 불러오기
+  useEffect(() => {
+    async function fetchPostData() {
+      if (!isEditMode || !postId) return
+      
+      try {
+        setIsLoadingPost(true)
+        const postData = await getCommunityPostDetail(Number(postId))
+        
+        setCategoryId(postData.category.id)
+        setTitle(postData.title)
+        setContent(postData.content)
+        
+        // 히스토리 스택도 초기화
+        setHistoryStack([postData.content])
+        setHistoryIndex(0)
+      } catch (error) {
+        console.error('게시글 로드 실패:', error)
+        alert('게시글을 불러오는데 실패했습니다.')
+        navigate('/community')
+      } finally {
+        setIsLoadingPost(false)
+      }
+    }
+    
+    fetchPostData()
+  }, [isEditMode, postId, navigate])
 
 
   useEffect(() => {
@@ -401,20 +433,47 @@ export default function CommunityCreatePage() {
     try {
       setIsLoading(true)
       const token = getAccessToken()
-      const data = await createCommunityPost({
-        category_id: categoryId,
-        title,
-        content,
-      }, token || undefined)
       
-      alert('게시글이 등록되었습니다.')
-      navigate(`/community/${data.pk}`)
+      if (isEditMode && postId) {
+        // 수정 모드
+        await updateCommunityPost(
+          Number(postId),
+          {
+            category_id: categoryId,
+            title,
+            content,
+          },
+          token || undefined
+        )
+        
+        alert('게시글이 수정되었습니다.')
+        navigate(`/community/${postId}`)
+      } else {
+        // 생성 모드
+        const data = await createCommunityPost({
+          category_id: categoryId,
+          title,
+          content,
+        }, token || undefined)
+        
+        alert('게시글이 등록되었습니다.')
+        navigate(`/community/${data.pk}`)
+      }
     } catch (error) {
-      console.error('게시글 등록 실패:', error)
-      alert('게시글 등록에 실패했습니다.')
+      console.error('게시글 처리 실패:', error)
+      alert(isEditMode ? '게시글 수정에 실패했습니다.' : '게시글 등록에 실패했습니다.')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // 로딩 중일 때
+  if (isLoadingPost) {
+    return (
+      <div className="flex w-full items-center justify-center py-20">
+        <div className="text-lg text-gray-500">게시글을 불러오는 중...</div>
+      </div>
+    )
   }
 
   return (
@@ -428,7 +487,7 @@ export default function CommunityCreatePage() {
           <div className="flex w-full flex-col items-start gap-10">
             <div className="flex w-full flex-col items-start gap-5">
               <h1 className="font-['Pretendard'] text-[32px] font-bold tracking-[-0.64px] text-[#111111]">
-                커뮤니티 게시글 작성
+                {isEditMode ? '커뮤니티 게시글 수정' : '커뮤니티 게시글 작성'}
               </h1>
               <div className="h-px w-full bg-[#E5E7EB]" />
             </div>
@@ -691,7 +750,7 @@ export default function CommunityCreatePage() {
           disabled={isLoading}
           className="rounded bg-[#7C3AED] px-10 py-3 text-base font-bold text-white transition-colors hover:bg-[#6D28D9] disabled:bg-gray-400"
         >
-          {isLoading ? '등록 중...' : '등록하기'}
+          {isLoading ? (isEditMode ? '수정 중...' : '등록 중...') : (isEditMode ? '수정하기' : '등록하기')}
         </button>
       </div>
     </div>
