@@ -104,13 +104,15 @@ export async function getCommunityPostDetail(postId: number) {
 
 export async function updateCommunityPost(
   postId: number,
-  body: CreateCommunityPostBody,
-  token?: string
+  body: CreateCommunityPostBody
 ): Promise<void> {
-  const res = await api.put(
+  const token = getAccessToken()
+  const res = await api.patch(
     `/api/v1/posts/${postId}`,
     body,
-    { headers: { ...withAuth(token) } }
+    {
+      headers: { ...withAuth(token || undefined) },
+    }
   )
   return res.data
 }
