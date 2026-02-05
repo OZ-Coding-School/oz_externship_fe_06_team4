@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
 import CommunityDetailPage from './pages/community/CommunityDetailPage'
@@ -14,8 +14,7 @@ export default function App() {
 
       <main className="flex-1 pt-[96px] pb-[120px]">
         <Routes>
-          <Route path="/" element={<Navigate to="/community" replace />} />
-
+          <Route path="/" element={<></>} />
           <Route path="/community" element={<CommunityListPage />} />
           <Route path="/community/new" element={<CommunityCreatePage />} />
           <Route
@@ -23,7 +22,7 @@ export default function App() {
             element={<CommunityEditPage />}
           />
           <Route path="/community/:postId" element={<CommunityDetailPage />} />
-          
+
           {/* 404 Not Found */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

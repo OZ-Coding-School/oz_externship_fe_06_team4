@@ -56,7 +56,7 @@ export default function Header() {
             {/* 메뉴 */}
             <nav className="flex gap-10 text-[18px] font-[Pretendard] text-gray-700">
               <a
-                href="#"
+                href="/community"
                 className="hover:text-black transition-colors duration-200"
               >
                 커뮤니티
