@@ -89,7 +89,7 @@ function ChevronRightIcon() {
 
 const ALL_CATEGORY_ID = 0 as const
 
-// 정렬 옵션(피그마 기준)
+// 정렬 옵션
 type SortKey = 'views' | 'likes' | 'comments' | 'latest' | 'oldest'
 
 const SORT_LABEL: Record<SortKey, string> = {
@@ -100,7 +100,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   oldest: '오래된 순',
 }
 
-// 서버 파라미터 매핑(백/MSW에 맞춰 필요하면 값만 바꿔)
+// 서버 파라미터 매핑
 const SORT_PARAM: Record<SortKey, string> = {
   views: 'views',
   likes: 'likes',
@@ -111,7 +111,7 @@ const SORT_PARAM: Record<SortKey, string> = {
 
 export default function CommunityListPage() {
   const navigate = useNavigate()
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(6)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(ALL_CATEGORY_ID)
   
   // 무한 스크롤 상태
   const [posts, setPosts] = useState<CommunityPostListItem[]>([])
@@ -215,8 +215,6 @@ export default function CommunityListPage() {
 
   const onSubmitSearch = () => {
     // keyword 상태가 변경되었을 때 useEffect가 트리거되도록 처리
-    // 이미 useEffect[keyword]가 있으므로 setKeyword('') -> setKeyword(val) 식이면 되지만
-    // 여기서는 단순히 trigger를 위해 keyword 상태만 확인
   }
   
   const onClickWrite = () => navigate('/community/new')
