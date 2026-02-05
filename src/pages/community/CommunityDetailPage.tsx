@@ -136,33 +136,20 @@ export default function CommunityDetailPage() {
 
   // 현재 로그인한 사용자 정보 가져오기 (API 호출)
   useEffect(() => {
-    let isCancelled = false
-
     async function fetchCurrentUser() {
       if (loggedIn) {
         try {
           const userData = await getCurrentUser()
-          if (!isCancelled) {
-            setCurrentUserId(userData.id)
-          }
+          setCurrentUserId(userData.id)
         } catch (err) {
           console.error('사용자 정보 조회 실패:', err)
-          if (!isCancelled) {
-            setCurrentUserId(null)
-          }
-        }
-      } else {
-        if (!isCancelled) {
           setCurrentUserId(null)
         }
+      } else {
+        setCurrentUserId(null)
       }
     }
-
     fetchCurrentUser()
-
-    return () => {
-      isCancelled = true
-    }
   }, [loggedIn])
 
   // 멘션 모달 외부 클릭 감지
@@ -217,8 +204,6 @@ export default function CommunityDetailPage() {
       return
     }
 
-    let isCancelled = false
-
     async function fetchData() {
       try {
         setLoading(true)
@@ -226,12 +211,9 @@ export default function CommunityDetailPage() {
 
         // 1. 게시글 상세 조회 (필수)
         const postData = await getCommunityPostDetail(Number(postId))
-        
-        if (!isCancelled) {
-          setPost(postData)
-          setIsLiked(postData.is_liked || false)
-          setLikeCount(postData.like_count || 0)
-        }
+        setPost(postData)
+        setIsLiked(postData.is_liked || false)
+        setLikeCount(postData.like_count || 0)
 
         // 2. 댓글 목록 조회 (선택 - 실패해도 게시글은 보여줌)
         try {
@@ -239,41 +221,25 @@ export default function CommunityDetailPage() {
             page: 1,
             page_size: COMMENTS_PER_PAGE
           })
-          
-          if (!isCancelled) {
-            setComments(commentData.results || [])
-            setHasMore(commentData.next !== null)
-          }
+          setComments(commentData.results || [])
+          setHasMore(commentData.next !== null)
         } catch (commentErr) {
           console.error('댓글 로딩 실패 (무시됨):', commentErr)
-          if (!isCancelled) {
-            setComments([])
-            setHasMore(false)
-          }
+          setComments([])
+          setHasMore(false)
         }
 
-        if (!isCancelled) {
-          setPage(1)
-        }
+        setPage(1)
       } catch (err) {
         console.error('게시글 데이터 로딩 실패:', err)
-        if (!isCancelled) {
-          setError('게시글을 불러오는데 실패했습니다.')
-          setPost(null)
-        }
+        setError('게시글을 불러오는데 실패했습니다.')
+        setPost(null)
       } finally {
-        if (!isCancelled) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
     }
 
     fetchData()
-
-    // cleanup 함수
-    return () => {
-      isCancelled = true
-    }
   }, [postId])
 
   // 추가 댓글 로드
