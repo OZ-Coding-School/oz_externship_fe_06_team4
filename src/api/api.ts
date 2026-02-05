@@ -98,7 +98,7 @@ export async function createCommunityPost(
 }
 
 export async function getCommunityPostDetail(postId: number) {
-  const res = await api.get(`/api/v1/posts/${postId}/`)
+  const res = await api.get(`/api/v1/posts/${postId}`)
   return res.data
 }
 
@@ -108,7 +108,7 @@ export async function updateCommunityPost(
   token?: string
 ): Promise<void> {
   const res = await api.put(
-    `/api/v1/posts/${postId}/`,
+    `/api/v1/posts/${postId}`,
     body,
     { headers: { ...withAuth(token) } }
   )
@@ -117,7 +117,7 @@ export async function updateCommunityPost(
 
 export async function deleteCommunityPost(postId: number): Promise<void> {
   const token = getAccessToken()
-  const res = await api.delete(`/api/v1/posts/${postId}/`, {
+  const res = await api.delete(`/api/v1/posts/${postId}`, {
     headers: { ...withAuth(token || undefined) },
   })
   return res.data
@@ -129,7 +129,7 @@ export async function getCommunityComments(
 ) {
   const q = toQuery(params as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  const res = await api.get(`/api/v1/posts/${postId}/comments/${suffix}`)
+  const res = await api.get(`/api/v1/posts/${postId}/comments${suffix}`)
   return res.data
 }
 
@@ -138,7 +138,7 @@ export async function createCommunityComment(
   body: CreateCommunityCommentBody
 ) {
   const token = getAccessToken()
-  const res = await api.post(`/api/v1/posts/${postId}/comments/`, body, {
+  const res = await api.post(`/api/v1/posts/${postId}/comments`, body, {
     headers: { ...withAuth(token || undefined) },
   })
   return res.data
@@ -151,7 +151,7 @@ export async function updateCommunityComment(
 ) {
   const token = getAccessToken()
   const res = await api.put(
-    `/api/v1/posts/${postId}/comments/${commentId}/`,
+    `/api/v1/posts/${postId}/comments/${commentId}`,
     body,
     { headers: { ...withAuth(token || undefined) } }
   )
@@ -164,7 +164,7 @@ export async function deleteCommunityComment(
 ) {
   const token = getAccessToken()
   const res = await api.delete(
-    `/api/v1/posts/${postId}/comments/${commentId}/`,
+    `/api/v1/posts/${postId}/comments/${commentId}`,
     {
       headers: { ...withAuth(token || undefined) },
     }
@@ -175,7 +175,7 @@ export async function deleteCommunityComment(
 export async function likeCommunityPost(postId: number) {
   const token = getAccessToken()
   const res = await api.post(
-    `/api/v1/posts/${postId}/like/`,
+    `/api/v1/posts/${postId}/like`,
     {},
     { headers: { ...withAuth(token || undefined) } }
   )
@@ -184,7 +184,7 @@ export async function likeCommunityPost(postId: number) {
 
 export async function unlikeCommunityPost(postId: number) {
   const token = getAccessToken()
-  const res = await api.delete(`/api/v1/posts/${postId}/like/`, {
+  const res = await api.delete(`/api/v1/posts/${postId}/like`, {
     headers: { ...withAuth(token || undefined) },
   })
   return res.data
