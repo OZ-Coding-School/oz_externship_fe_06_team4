@@ -1,6 +1,7 @@
-// src/components/community/list/CommunitySearchBar.tsx
+
 import { useEffect, useRef, useState } from 'react'
 import type { SearchFilterOption } from '../../../types'
+import { isLoggedIn } from '../../../api/api'
 
 function WritePencilIcon() {
   return (
@@ -80,7 +81,6 @@ type Props = {
   onClickWrite: () => void
 }
 
-// ✅ 피그마 드롭다운은 3개만(제목/내용/작성자)
 const FILTER_ITEMS: Array<{ key: SearchFilterOption; label: string }> = [
   { key: 'title', label: '제목' },
   { key: 'content', label: '내용' },
@@ -98,13 +98,11 @@ export default function CommunitySearchBar({
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement | null>(null)
 
-  // ✅ 기존 기본값이 title_or_content로 들어오면, 피그마 기준으로 '제목'으로 맞춤
   useEffect(() => {
     if (filter === 'all') onChangeFilter('title')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ✅ 바깥 클릭 시 닫기
   useEffect(() => {
     function onDocDown(e: MouseEvent) {
       if (!open) return
@@ -204,15 +202,17 @@ export default function CommunitySearchBar({
         </div>
       </div>
 
-      {/* 오른쪽: 글쓰기 */}
-      <button
-        type="button"
-        onClick={onClickWrite}
-        className="flex h-[40px] items-center justify-center gap-2 rounded-[6px] bg-[#6D28D9] px-[22px] text-[14px] font-semibold text-white hover:bg-[#5B21B6]"
-      >
-        <WritePencilIcon />
-        글쓰기
-      </button>
+      {/* 오른쪽: 글쓰기 - 로그인한 사용자에게만 표시 */}
+      {isLoggedIn() && (
+        <button
+          type="button"
+          onClick={onClickWrite}
+          className="flex h-[40px] items-center justify-center gap-2 rounded-[6px] bg-[#6D28D9] px-[22px] text-[14px] font-semibold text-white hover:bg-[#5B21B6]"
+        >
+          <WritePencilIcon />
+          글쓰기
+        </button>
+      )}
     </div>
   )
 }
