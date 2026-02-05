@@ -39,7 +39,12 @@ export default function CommunityListItem({ item, categoryName }: Props) {
   return (
     <button
       type="button"
-      onClick={() => nav(`/community/${item.id}`)}
+      onClick={() => {
+        console.log('Item clicked, ID:', item.id) // 디버깅용 로그
+        nav(`/community/${item.id}`, {
+          state: { thumbnail_img_url: item.thumbnail_img_url },
+        })
+      }}
       className="w-full text-left"
     >
       <div className="flex w-full items-start justify-between gap-[8px] px-[24px] py-[32px]">
@@ -62,10 +67,10 @@ export default function CommunityListItem({ item, categoryName }: Props) {
             <div className="flex items-center gap-[14px] text-[12px] text-[#8A8A8A]">
               <span className="inline-flex items-center gap-[6px]">
                 <LikeThumbIcon />
-                <span>좋아요 {item.like_count}</span>
+                <span>좋아요 {item.likes_count}</span>
               </span>
               <span className="inline-flex items-center gap-[6px]">
-                <span>댓글 {item.comment_count}</span>
+                <span>댓글 {item.comments_count}</span>
               </span>
               <span className="inline-flex items-center gap-[6px]">
                 <span>조회수 {item.view_count}</span>

@@ -184,6 +184,7 @@ export default function CommunityListPage() {
       ])
 
       if (isInitial) {
+        console.log('Posts API Response Results:', res.results) // 디버깅용 로그
         setPosts(res.results || [])
       } else {
         setPosts((prev) => [...prev, ...(res.results || [])])

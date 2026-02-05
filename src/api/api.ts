@@ -42,7 +42,7 @@ export function getAccessToken(): string | null {
 /** 현재 로그인한 사용자 정보 조회 API */
 export async function getCurrentUser() {
   const token = getAccessToken()
-  const res = await api.get('/api/v1/accounts/me', {
+  const res = await api.get('/api/v1/accounts/me/', {
     headers: { ...withAuth(token || undefined) },
   })
   return res.data
@@ -80,7 +80,7 @@ export async function getCommunityPosts(
   const q = toQuery(params as unknown as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
   const res = await api.get<PaginatedResponse<CommunityPostListItem>>(
-    `/api/v1/posts${suffix}`
+    `/api/v1/posts/${suffix}`
   )
   return res.data
 }
@@ -90,7 +90,7 @@ export async function createCommunityPost(
   token?: string
 ): Promise<CreateCommunityPostResponse> {
   const res = await api.post<CreateCommunityPostResponse>(
-    '/api/v1/posts',
+    '/api/v1/posts/',
     body,
     { headers: { ...withAuth(token) } }
   )
@@ -208,7 +208,7 @@ export interface PresignedUrlResponse {
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
   const token = getAccessToken()
   const res = await api.put<PresignedUrlResponse>(
-    '/api/v1/questions/presigned-url',
+    '/api/v1/questions/presigned-url/',
     { file_name: fileName },
     { headers: { ...withAuth(token || undefined) } }
   )

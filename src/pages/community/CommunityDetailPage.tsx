@@ -209,29 +209,31 @@ export default function CommunityDetailPage() {
         setLoading(true)
         setError(null)
 
-        // 최소 200ms 로딩 시간 보장
-        const [postData, commentData] = await Promise.all([
-          getCommunityPostDetail(Number(postId)),
-          getCommunityComments(Number(postId), {
-            page: 1,
-            page_size: COMMENTS_PER_PAGE
-          }),
-          new Promise(resolve => setTimeout(resolve, 200))
-        ])
-
+        // 1. 게시글 상세 조회 (필수)
+        const postData = await getCommunityPostDetail(Number(postId))
         setPost(postData)
-        setComments(commentData.results || [])
         setIsLiked(postData.is_liked || false)
         setLikeCount(postData.like_count || 0)
 
-        // 더 불러올 댓글이 있는지 확인
-        setHasMore(commentData.next !== null)
+        // 2. 댓글 목록 조회 (선택 - 실패해도 게시글은 보여줌)
+        try {
+          const commentData = await getCommunityComments(Number(postId), {
+            page: 1,
+            page_size: COMMENTS_PER_PAGE
+          })
+          setComments(commentData.results || [])
+          setHasMore(commentData.next !== null)
+        } catch (commentErr) {
+          console.error('댓글 로딩 실패 (무시됨):', commentErr)
+          setComments([])
+          setHasMore(false)
+        }
+
         setPage(1)
       } catch (err) {
-        console.error('데이터 로딩 실패:', err)
+        console.error('게시글 데이터 로딩 실패:', err)
         setError('게시글을 불러오는데 실패했습니다.')
         setPost(null)
-        setComments([])
       } finally {
         setLoading(false)
       }

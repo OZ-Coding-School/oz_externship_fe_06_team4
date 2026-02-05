@@ -31,9 +31,9 @@ export interface CommunityPostListItem {
   title: string
   thumbnail_img_url: string | null
   content_preview: string
-  comment_count: number
+  comments_count: number
   view_count: number
-  like_count: number
+  likes_count: number
   created_at: string // ISO string
   updated_at: string // ISO string
   category_id: number
