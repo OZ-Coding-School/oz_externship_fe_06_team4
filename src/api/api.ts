@@ -21,7 +21,7 @@ export const api = axios.create({
   },
 })
 
-/** (옵션) JS로 읽을 수 있는 쿠키일 때만 사용 가능 */
+/** JS로 읽을 수 있는 쿠키일 때만 사용 가능 */
 function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`
   const parts = value.split(`; ${name}=`)
@@ -59,7 +59,7 @@ export function toQuery(params?: Record<string, unknown>) {
   return sp
 }
 
-/** Authorization 헤더 주입 (토큰을 JS에서 읽을 수 있을 때만 의미 있음) */
+/** Authorization 헤더 주입 */
 function withAuth(token?: string) {
   if (!token) return {}
   return { Authorization: `Bearer ${token}` }
@@ -202,7 +202,7 @@ export interface PresignedUrlResponse {
 
 /**
  * S3 이미지 업로드를 위한 Presigned URL 발급 요청
- * @param fileName - 업로드할 파일명 (예: "example.png")
+ * @param fileName - 업로드할 파일명 
  * @returns presigned_url, img_url, key
  */
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
