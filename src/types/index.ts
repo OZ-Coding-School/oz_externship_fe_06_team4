@@ -1,17 +1,14 @@
-// 명세서: search_filter enum = "author" | "title" | "content" | "title_or_content"
 export type SearchFilterOption =
-  | 'author'
+  | 'all'
   | 'title'
   | 'content'
-  | 'title_or_content'
+  | 'nickname'
 
-// 명세서: sort enum = "latest" | "oldest" | "most_views" | "most_likes" | "most_comments"
 export type SortOption =
   | 'latest'
+  | 'likes'
+  | 'comments'
   | 'oldest'
-  | 'most_views'
-  | 'most_likes'
-  | 'most_comments'
 
 // =======================
 // Community - Types
