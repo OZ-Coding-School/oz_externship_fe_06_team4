@@ -29,7 +29,9 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3, isLoggedIn } from '../../api/api'
+
+
 import type { CommunityCategory } from '../../types'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
@@ -61,6 +63,14 @@ function replaceInfo(
 
 export default function CommunityCreatePage() {
   const navigate = useNavigate()
+
+  // 로그인 체크
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      alert('로그인이 필요한 서비스입니다.')
+      navigate('/login', { replace: true, state: { from: '/community/new' } })
+    }
+  }, [navigate])
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])
