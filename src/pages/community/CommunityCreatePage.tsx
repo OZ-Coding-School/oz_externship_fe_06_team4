@@ -303,7 +303,7 @@ export default function CommunityCreatePage() {
   }
 
 
-  const toggleLinePrefix = (prefix: string) => {
+  const toggleLinePrefix = (pattern: string | RegExp, defaultPrefix?: string) => {
     const textarea = textareaRef.current
     if (!textarea) return
 
@@ -316,16 +316,21 @@ export default function CommunityCreatePage() {
     const lines = linesContent.split('\n')
     
     const newLines = lines.map(line => {
-      if (line.startsWith(prefix)) {
-        return line.substring(prefix.length)
+      if (pattern instanceof RegExp) {
+        if (pattern.test(line)) {
+          return line.replace(pattern, '')
+        }
+        return (defaultPrefix || '') + line
       } else {
-        return prefix + line
+        if (line.startsWith(pattern)) {
+          return line.substring(pattern.length)
+        }
+        return pattern + line
       }
     })
     
     const newText = newLines.join('\n')
     
-    replaceInfo(textarea, newText, lineStart, lineEnd)
     const res = replaceInfo(textarea, newText, lineStart, lineEnd)
     updateContent(res.value)
     
@@ -336,7 +341,7 @@ export default function CommunityCreatePage() {
   }
 
   const handleOrderedList = () => {
-    toggleLinePrefix('1. ')
+    toggleLinePrefix(/^\d+\.\s/, '1. ')
     setIsListMenuOpen(false)
   }
   const handleUnorderedList = () => {
@@ -542,7 +547,7 @@ export default function CommunityCreatePage() {
                        <ToolbarArrowIcon />
                     </button>
                     
-                    <button type="button" onClick={handleUnderline} className="p-1 hover:bg-gray-100 rounded">
+                    <button type="button" onClick={() => setIsTextColorMenuOpen(!isTextColorMenuOpen)} className="p-1 hover:bg-gray-100 rounded">
                        <ToolbarTextIcon />
                     </button>
                     

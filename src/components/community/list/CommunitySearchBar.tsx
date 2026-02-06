@@ -128,8 +128,8 @@ export default function CommunitySearchBar({
             aria-haspopup="menu"
             aria-expanded={open}
           >
-            {/* 닫혀있을 때는 '검색 유형'으로 보이게 */}
-            <span>{open ? '검색 유형' : '검색 유형'}</span>
+            {/* 현재 선택된 필터 표시 */}
+            <span>{FILTER_ITEMS.find(item => item.key === filter)?.label || '검색 유형'}</span>
             <DropdownChevron open={open} />
           </button>
 
