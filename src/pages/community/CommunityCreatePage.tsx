@@ -763,16 +763,16 @@ export default function CommunityCreatePage() {
                           code: ({ node, ...props }) => (
                             <code className="bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm text-red-500" {...props} />
                           ),
-                       pre: ({node, ...props}) => <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />,
+                        pre: ({node, ...props}) => <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />,
                         span: ({style, ...props}) => {
                           const styleObj = typeof style === 'string' 
-                            ? Object.fromEntries(style.split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
+                            ? Object.fromEntries((style as string).split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
                             : style
                           return <span style={styleObj as React.CSSProperties} {...props} />
                         },
                         div: ({style, ...props}) => {
                           const styleObj = typeof style === 'string'
-                            ? Object.fromEntries(style.split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
+                            ? Object.fromEntries((style as string).split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
                             : style
                           return <div style={styleObj as React.CSSProperties} {...props} />
                         },
