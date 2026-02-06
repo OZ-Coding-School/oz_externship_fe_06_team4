@@ -509,7 +509,11 @@ export default function CommunityDetailPage() {
     }
   }
 
-  if (loading) return <LoadingDots />
+  if (loading) return (
+    <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 300px)' }}>
+      <LoadingDots />
+    </div>
+  )
   if (error)
     return <div className="py-20 text-center text-red-500">{error}</div>
   if (!post) return <div className="py-20 text-center">게시글이 없습니다.</div>
