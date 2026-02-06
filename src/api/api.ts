@@ -177,7 +177,7 @@ export async function deleteCommunityComment(
 export async function likeCommunityPost(postId: number) {
   const token = getAccessToken()
   const res = await api.post(
-    `/api/v1/posts/${postId}/like`,
+    `/api/v1/posts/${postId}/like/`,
     {},
     { headers: { ...withAuth(token || undefined) } }
   )
@@ -186,7 +186,7 @@ export async function likeCommunityPost(postId: number) {
 
 export async function unlikeCommunityPost(postId: number) {
   const token = getAccessToken()
-  const res = await api.delete(`/api/v1/posts/${postId}/like`, {
+  const res = await api.delete(`/api/v1/posts/${postId}/like/`, {
     headers: { ...withAuth(token || undefined) },
   })
   return res.data
