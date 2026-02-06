@@ -730,7 +730,7 @@ export default function CommunityDetailPage() {
         <div className="w-[944px] flex items-center justify-between">
           <div className="flex items-center gap-2 text-[20px] font-bold text-[#121212]">
             <img src="/icons/message-circle.svg" className="h-5 w-5" alt="댓글" />
-            댓글 {post.comment_count}개
+            댓글 {post.comment_count ?? 0}개
           </div>
 
           <div className="relative">
