@@ -93,6 +93,7 @@ export default function CommunityCreatePage() {
   const fontSizeRef = useRef<HTMLDivElement>(null)
   const textColorRef = useRef<HTMLDivElement>(null)
   const listMenuRef = useRef<HTMLDivElement>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   
 
   const [historyStack, setHistoryStack] = useState<string[]>([''])
@@ -130,19 +131,15 @@ export default function CommunityCreatePage() {
 
 
   const pushToHistory = useCallback((newContent: string) => {
-    if (newContent === historyStack[historyIndex]) return 
-
-    const newHistory = historyStack.slice(0, historyIndex + 1)
-    newHistory.push(newContent)
-    
-
-    if (newHistory.length > 50) {
-      newHistory.shift()
-    }
-    
-    setHistoryStack(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-  }, [historyStack, historyIndex])
+    setHistoryStack(prevStack => {
+      if (newContent === prevStack[historyIndex]) return prevStack
+      const newHistory = prevStack.slice(0, historyIndex + 1)
+      newHistory.push(newContent)
+      if (newHistory.length > 50) newHistory.shift()
+      return newHistory
+    })
+    setHistoryIndex(prevIndex => Math.min(49, prevIndex + 1))
+  }, [historyIndex])
 
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -160,11 +157,15 @@ export default function CommunityCreatePage() {
     }
   }
 
-
-  const updateContent = (newContent: string, saveToHistory = true) => {
+  const updateContent = (newContent: string, saveToHistory = true, isKeystroke = false) => {
     setContent(newContent)
     if (saveToHistory) {
-      pushToHistory(newContent)
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+      if (isKeystroke) {
+        debounceTimerRef.current = setTimeout(() => pushToHistory(newContent), 500)
+      } else {
+        pushToHistory(newContent)
+      }
     }
   }
 
@@ -197,19 +198,46 @@ export default function CommunityCreatePage() {
 
   const toggleWrapper = (prefix: string, suffix: string, placeholder = 'text') => {
     applyParams((sel) => {
-      if (sel.startsWith(prefix) && sel.endsWith(suffix)) {
+      const trimmed = sel.trim()
+      const leading = sel.match(/^\s*/)?.[0] || ''
+      const trailing = sel.match(/\s*$/)?.[0] || ''
+
+      // 리스트 접두사가 포함된 경우 분리 처리
+      const listMatch = trimmed.match(/^(\d+\.\s|- |> )/)
+      if (listMatch) {
+        const listPrefix = listMatch[0]
+        const body = trimmed.slice(listPrefix.length)
+        
+        if (body.startsWith(prefix) && body.endsWith(suffix)) {
+          const inner = body.slice(prefix.length, -suffix.length)
+          return {
+            text: leading + listPrefix + inner + trailing,
+            selectLength: inner.length,
+            cursorOffset: leading.length + listPrefix.length
+          }
+        }
+        const content = body || placeholder
+        return {
+          text: leading + listPrefix + prefix + content + suffix + trailing,
+          selectLength: content.length,
+          cursorOffset: leading.length + listPrefix.length + prefix.length
+        }
+      }
+
+      if (trimmed.startsWith(prefix) && trimmed.endsWith(suffix)) {
+        const inner = trimmed.slice(prefix.length, -suffix.length)
         return { 
-          text: sel.slice(prefix.length, -suffix.length),
-          selectLength: sel.length - prefix.length - suffix.length,
-          cursorOffset: 0
+          text: leading + inner + trailing,
+          selectLength: inner.length,
+          cursorOffset: leading.length
         }
       }
       
-      const content = sel || placeholder
+      const content = trimmed || placeholder
       return { 
-        text: `${prefix}${content}${suffix}`, 
+        text: leading + prefix + content + suffix + trailing, 
         selectLength: content.length,
-        cursorOffset: prefix.length 
+        cursorOffset: leading.length + prefix.length 
       }
     })
   }
@@ -303,7 +331,7 @@ export default function CommunityCreatePage() {
   }
 
 
-  const toggleLinePrefix = (prefix: string) => {
+  const toggleLinePrefix = (pattern: string | RegExp, defaultPrefix?: string) => {
     const textarea = textareaRef.current
     if (!textarea) return
 
@@ -316,16 +344,21 @@ export default function CommunityCreatePage() {
     const lines = linesContent.split('\n')
     
     const newLines = lines.map(line => {
-      if (line.startsWith(prefix)) {
-        return line.substring(prefix.length)
+      if (pattern instanceof RegExp) {
+        if (pattern.test(line)) {
+          return line.replace(pattern, '')
+        }
+        return (defaultPrefix || '') + line
       } else {
-        return prefix + line
+        if (line.startsWith(pattern)) {
+          return line.substring(pattern.length)
+        }
+        return pattern + line
       }
     })
     
     const newText = newLines.join('\n')
     
-    replaceInfo(textarea, newText, lineStart, lineEnd)
     const res = replaceInfo(textarea, newText, lineStart, lineEnd)
     updateContent(res.value)
     
@@ -336,7 +369,7 @@ export default function CommunityCreatePage() {
   }
 
   const handleOrderedList = () => {
-    toggleLinePrefix('1. ')
+    toggleLinePrefix(/^\d+\.\s/, '1. ')
     setIsListMenuOpen(false)
   }
   const handleUnorderedList = () => {
@@ -424,6 +457,53 @@ export default function CommunityCreatePage() {
       alert('게시글 등록에 실패했습니다.')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    const { start, end, value } = getSelectionInfo(textarea)
+
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      if (e.shiftKey) {
+        handleOutdent()
+      } else {
+        const res = replaceInfo(textarea, '  ', start, start)
+        updateContent(res.value)
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + 2
+        }, 0)
+      }
+    }
+
+    if (e.key === 'Enter') {
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1
+      const lineContent = value.substring(lineStart, start)
+
+      const listMatch = lineContent.match(/^(\s*)(\d+\.\s|- |> )/)
+      if (listMatch && lineContent.length > listMatch[0].length) {
+        e.preventDefault()
+        let nextPrefix = listMatch[0]
+        if (nextPrefix.includes('.')) {
+          const num = parseInt(nextPrefix)
+          nextPrefix = nextPrefix.replace(/\d+/, (num + 1).toString())
+        }
+        const insertText = '\n' + nextPrefix
+        const res = replaceInfo(textarea, insertText, start, start)
+        updateContent(res.value)
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = start + insertText.length
+        }, 0)
+      } else if (listMatch && lineContent.length === listMatch[0].length) {
+        e.preventDefault()
+        const res = replaceInfo(textarea, '\n', lineStart, start)
+        updateContent(res.value)
+        setTimeout(() => {
+          textarea.selectionStart = textarea.selectionEnd = lineStart + 1
+        }, 0)
+      }
     }
   }
 
@@ -542,7 +622,7 @@ export default function CommunityCreatePage() {
                        <ToolbarArrowIcon />
                     </button>
                     
-                    <button type="button" onClick={handleUnderline} className="p-1 hover:bg-gray-100 rounded">
+                    <button type="button" onClick={() => setIsTextColorMenuOpen(!isTextColorMenuOpen)} className="p-1 hover:bg-gray-100 rounded">
                        <ToolbarTextIcon />
                     </button>
                     
@@ -616,7 +696,7 @@ export default function CommunityCreatePage() {
                    <button type="button" onClick={() => handleAlign('justify')} className="p-1 hover:bg-gray-100 rounded"><ToolbarAlignJustifyIcon /></button>
                  </div>
 
- 
+  
                  <div className="flex items-center gap-2">
                     <button type="button" onClick={handleLineHeight} className="p-1 hover:bg-gray-100 rounded">
                        <ToolbarLineHeightIcon />
@@ -645,7 +725,8 @@ export default function CommunityCreatePage() {
                 <textarea
                   ref={textareaRef}
                   value={content}
-                  onChange={(e) => updateContent(e.target.value)}
+                  onChange={(e) => updateContent(e.target.value, true, true)}
+                  onKeyDown={handleKeyDown}
                   className="flex-1 resize-none bg-transparent font-['Pretendard'] text-[14px] leading-relaxed text-black outline-none placeholder:text-gray-300"
                   placeholder={`# 제목
 
@@ -683,8 +764,18 @@ export default function CommunityCreatePage() {
                             <code className="bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm text-red-500" {...props} />
                           ),
                        pre: ({node, ...props}) => <pre className="bg-gray-900 text-white p-4 rounded-lg overflow-x-auto my-4" {...props} />,
-                       span: ({node, ...props}) => <span {...props} />,
-                       div: ({node, ...props}) => <div {...props} />,
+                        span: ({style, ...props}) => {
+                          const styleObj = typeof style === 'string' 
+                            ? Object.fromEntries(style.split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
+                            : style
+                          return <span style={styleObj as React.CSSProperties} {...props} />
+                        },
+                        div: ({style, ...props}) => {
+                          const styleObj = typeof style === 'string'
+                            ? Object.fromEntries(style.split(';').filter(Boolean).map((s: string) => s.split(':').map((x: string) => x.trim())))
+                            : style
+                          return <div style={styleObj as React.CSSProperties} {...props} />
+                        },
                      }}
                    >
                      {content || '*미리보기가 여기에 표시됩니다.*'}
