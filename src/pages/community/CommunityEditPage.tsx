@@ -442,8 +442,7 @@ export default function CommunityCreatePage() {
             category_id: categoryId,
             title,
             content,
-          },
-          token || undefined
+          }
         )
         
         alert('게시글이 수정되었습니다.')
