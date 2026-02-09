@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CommunityPostListItem } from '../../../types'
-import { formatRelativeTime } from '../../../utils/community'
+import { formatRelativeTime, stripMarkdown } from '../../../utils/community'
 
 type Props = {
   item: CommunityPostListItem
@@ -59,7 +59,7 @@ export default function CommunityListItem({ item, categoryName }: Props) {
           </div>
 
           <div className="mt-[10px] line-clamp-2 text-[14px] leading-[22px] text-[#8A8A8A]">
-            {item.content_preview}
+            {stripMarkdown(item.content_preview)}
           </div>
 
           {/* 하단 메타 */}
