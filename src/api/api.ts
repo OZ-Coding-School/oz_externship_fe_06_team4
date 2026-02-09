@@ -8,6 +8,10 @@ import type {
   PaginatedResponse,
   CreateCommunityCommentBody,
   UpdateCommunityCommentBody,
+  CommunityComment,
+  UpdateCommunityCommentResponse,
+  DeleteCommunityCommentResponse,
+  CreateCommunityCommentResponse,
 } from '../types'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -70,7 +74,7 @@ function withAuth(token?: string) {
 // =============================
 
 export async function getCommunityCategories(): Promise<CommunityCategory[]> {
-  const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories')
+  const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories/')
   return res.data
 }
 
@@ -128,21 +132,27 @@ export async function deleteCommunityPost(postId: number): Promise<void> {
 export async function getCommunityComments(
   postId: number,
   params?: { page?: number; page_size?: number }
-) {
+): Promise<PaginatedResponse<CommunityComment>> {
   const q = toQuery(params as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  const res = await api.get(`/api/v1/posts/${postId}/comments${suffix}`)
+  const res = await api.get<PaginatedResponse<CommunityComment>>(
+    `/api/v1/posts/${postId}/comments/${suffix}`
+  )
   return res.data
 }
 
 export async function createCommunityComment(
   postId: number,
   body: CreateCommunityCommentBody
-) {
+): Promise<CreateCommunityCommentResponse> {
   const token = getAccessToken()
-  const res = await api.post(`/api/v1/posts/${postId}/comments`, body, {
-    headers: { ...withAuth(token || undefined) },
-  })
+  const res = await api.post<CreateCommunityCommentResponse>(
+    `/api/v1/posts/${postId}/comments/create/`,
+    body,
+    {
+      headers: { ...withAuth(token || undefined) },
+    }
+  )
   return res.data
 }
 
@@ -150,10 +160,10 @@ export async function updateCommunityComment(
   postId: number,
   commentId: number,
   body: UpdateCommunityCommentBody
-) {
+): Promise<UpdateCommunityCommentResponse> {
   const token = getAccessToken()
-  const res = await api.put(
-    `/api/v1/posts/${postId}/comments/${commentId}`,
+  const res = await api.put<UpdateCommunityCommentResponse>(
+    `/api/v1/posts/${postId}/comments/${commentId}/update/`,
     body,
     { headers: { ...withAuth(token || undefined) } }
   )
@@ -163,10 +173,10 @@ export async function updateCommunityComment(
 export async function deleteCommunityComment(
   postId: number,
   commentId: number
-) {
+): Promise<DeleteCommunityCommentResponse> {
   const token = getAccessToken()
-  const res = await api.delete(
-    `/api/v1/posts/${postId}/comments/${commentId}`,
+  const res = await api.delete<DeleteCommunityCommentResponse>(
+    `/api/v1/posts/${postId}/comments/${commentId}/delete/`,
     {
       headers: { ...withAuth(token || undefined) },
     }
