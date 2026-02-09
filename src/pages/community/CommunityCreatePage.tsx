@@ -171,15 +171,23 @@ export default function CommunityCreatePage() {
 
 
   const applyParams = (
-    transform: (sel: string, all: string, start: number, end: number) => { text: string; cursorOffset?: number; selectLength?: number }
+    transform: (sel: string, all: string, start: number, end: number) => { 
+      text: string; 
+      cursorOffset?: number; 
+      selectLength?: number;
+      rangeStart?: number;
+      rangeEnd?: number;
+    }
   ) => {
     const textarea = textareaRef.current
     if (!textarea) return
 
     const { start, end, selectedText } = getSelectionInfo(textarea)
-    const { text, cursorOffset, selectLength } = transform(selectedText, textarea.value, start, end)
+    const { text, cursorOffset, selectLength, rangeStart, rangeEnd } = transform(selectedText, textarea.value, start, end)
 
-    const result = replaceInfo(textarea, text, start, end)
+    const actualStart = rangeStart ?? start
+    const actualEnd = rangeEnd ?? end
+    const result = replaceInfo(textarea, text, actualStart, actualEnd)
     
 
     updateContent(result.value, true)
@@ -187,7 +195,7 @@ export default function CommunityCreatePage() {
 
     setTimeout(() => {
       textarea.focus()
-      const newCursorStart = start + (cursorOffset ?? text.length)
+      const newCursorStart = actualStart + (cursorOffset ?? text.length)
       const newCursorEnd = selectLength !== undefined ? newCursorStart + selectLength : newCursorStart
       textarea.selectionStart = newCursorStart
       textarea.selectionEnd = newCursorEnd
@@ -197,12 +205,36 @@ export default function CommunityCreatePage() {
   // --- 툴바  ---
 
   const toggleWrapper = (prefix: string, suffix: string, placeholder = 'text') => {
-    applyParams((sel) => {
-      const trimmed = sel.trim()
-      const leading = sel.match(/^\s*/)?.[0] || ''
-      const trailing = sel.match(/\s*$/)?.[0] || ''
+    applyParams((sel, all, start, end) => {
+      // 1. 이미 선택 영역 외부가 기호로 감싸져 있는지 확인 
+      const before = all.substring(start - prefix.length, start)
+      const after = all.substring(end, end + suffix.length)
 
-      // 리스트 접두사가 포함된 경우 분리 처리
+      // Italic 특수 처리: Bold와 혼동되지 않도록 함
+      let isItalicTogglingBold = false
+      if (prefix === '*' && suffix === '*') {
+        const furtherBefore = all.substring(start - 2, start - 1)
+        const furtherAfter = all.substring(end + 1, end + 2)
+        if (before === '*' && after === '*' && (furtherBefore === '*' || furtherAfter === '*')) {
+          isItalicTogglingBold = true
+        }
+      }
+
+      if (before === prefix && after === suffix && !isItalicTogglingBold) {
+        return {
+          text: sel,
+          rangeStart: start - prefix.length,
+          rangeEnd: end + suffix.length,
+          cursorOffset: 0,
+          selectLength: sel.length
+        }
+      }
+
+      // 2. 선택 영역 내부의 앞뒤 공백 및 리스트 기호 처리 
+      const trimmed = sel.trim()
+      const leadingGap = sel.match(/^\s*/)?.[0] || ''
+      const trailingGap = sel.match(/\s*$/)?.[0] || ''
+
       const listMatch = trimmed.match(/^(\d+\.\s|- |> )/)
       if (listMatch) {
         const listPrefix = listMatch[0]
@@ -211,33 +243,45 @@ export default function CommunityCreatePage() {
         if (body.startsWith(prefix) && body.endsWith(suffix)) {
           const inner = body.slice(prefix.length, -suffix.length)
           return {
-            text: leading + listPrefix + inner + trailing,
+            text: leadingGap + listPrefix + inner + trailingGap,
             selectLength: inner.length,
-            cursorOffset: leading.length + listPrefix.length
+            cursorOffset: leadingGap.length + listPrefix.length
           }
         }
         const content = body || placeholder
         return {
-          text: leading + listPrefix + prefix + content + suffix + trailing,
+          text: leadingGap + listPrefix + prefix + content + suffix + trailingGap,
           selectLength: content.length,
-          cursorOffset: leading.length + listPrefix.length + prefix.length
+          cursorOffset: leadingGap.length + listPrefix.length + prefix.length
         }
       }
 
+      // 3. 선택 영역 자체가 기호로 감싸져 있는 경우 
       if (trimmed.startsWith(prefix) && trimmed.endsWith(suffix)) {
-        const inner = trimmed.slice(prefix.length, -suffix.length)
-        return { 
-          text: leading + inner + trailing,
-          selectLength: inner.length,
-          cursorOffset: leading.length
+        // Italic vs Bold 체크
+        let isInternalItalicTogglingBold = false
+        if (prefix === '*' && suffix === '*') {
+          if (trimmed.startsWith('**') && trimmed.endsWith('**')) {
+            isInternalItalicTogglingBold = true
+          }
+        }
+
+        if (!isInternalItalicTogglingBold) {
+          const inner = trimmed.slice(prefix.length, -suffix.length)
+          return { 
+            text: leadingGap + inner + trailingGap,
+            selectLength: inner.length,
+            cursorOffset: leadingGap.length
+          }
         }
       }
       
+      // 4. 감싸기 실행
       const content = trimmed || placeholder
       return { 
-        text: leading + prefix + content + suffix + trailing, 
+        text: leadingGap + prefix + content + suffix + trailingGap, 
         selectLength: content.length,
-        cursorOffset: leading.length + prefix.length 
+        cursorOffset: leadingGap.length + prefix.length 
       }
     })
   }
