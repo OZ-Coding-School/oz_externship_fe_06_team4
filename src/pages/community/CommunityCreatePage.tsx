@@ -206,11 +206,11 @@ export default function CommunityCreatePage() {
 
   const toggleWrapper = (prefix: string, suffix: string, placeholder = 'text') => {
     applyParams((sel, all, start, end) => {
-      // 1. 이미 선택 영역 외부가 기호로 감싸져 있는지 확인 (예: *|abc|* )
+      // 1. 이미 선택 영역 외부가 기호로 감싸져 있는지 확인 
       const before = all.substring(start - prefix.length, start)
       const after = all.substring(end, end + suffix.length)
 
-      // Italic(*) 특수 처리: Bold(**)와 혼동되지 않도록 함
+      // Italic 특수 처리: Bold와 혼동되지 않도록 함
       let isItalicTogglingBold = false
       if (prefix === '*' && suffix === '*') {
         const furtherBefore = all.substring(start - 2, start - 1)
@@ -230,7 +230,7 @@ export default function CommunityCreatePage() {
         }
       }
 
-      // 2. 선택 영역 내부의 앞뒤 공백 및 리스트 기호 처리 (기존 로직 유지/강화)
+      // 2. 선택 영역 내부의 앞뒤 공백 및 리스트 기호 처리 
       const trimmed = sel.trim()
       const leadingGap = sel.match(/^\s*/)?.[0] || ''
       const trailingGap = sel.match(/\s*$/)?.[0] || ''
@@ -256,7 +256,7 @@ export default function CommunityCreatePage() {
         }
       }
 
-      // 3. 선택 영역 자체가 기호로 감싸져 있는 경우 (예: |*abc*| )
+      // 3. 선택 영역 자체가 기호로 감싸져 있는 경우 
       if (trimmed.startsWith(prefix) && trimmed.endsWith(suffix)) {
         // Italic vs Bold 체크
         let isInternalItalicTogglingBold = false
