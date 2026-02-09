@@ -12,6 +12,8 @@ import type {
   UpdateCommunityCommentResponse,
   DeleteCommunityCommentResponse,
   CreateCommunityCommentResponse,
+  CommunityPostDetail,
+  DeleteCommunityPostResponse,
 } from '../types'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -38,7 +40,7 @@ export function isLoggedIn(): boolean {
   return getCookie('refreshToken') !== null || localStorage.getItem('user') !== null
 }
 
-/** (옵션) Access Token 가져오기 (HttpOnly면 null 나올 수 있음) */
+/** Access Token 가져오기 (HttpOnly면 null 나올 수 있음) */
 export function getAccessToken(): string | null {
   return getCookie('accessToken')
 }
@@ -101,8 +103,10 @@ export async function createCommunityPost(
   return res.data
 }
 
-export async function getCommunityPostDetail(postId: number) {
-  const res = await api.get(`/api/v1/posts/${postId}`)
+export async function getCommunityPostDetail(
+  postId: number
+): Promise<CommunityPostDetail> {
+  const res = await api.get<CommunityPostDetail>(`/api/v1/posts/${postId}`)
   return res.data
 }
 
@@ -111,21 +115,22 @@ export async function updateCommunityPost(
   body: CreateCommunityPostBody
 ): Promise<void> {
   const token = getAccessToken()
-  const res = await api.patch(
+  const res = await api.patch<void>(`/api/v1/posts/${postId}`, body, {
+    headers: { ...withAuth(token || undefined) },
+  })
+  return res.data
+}
+
+export async function deleteCommunityPost(
+  postId: number
+): Promise<DeleteCommunityPostResponse> {
+  const token = getAccessToken()
+  const res = await api.delete<DeleteCommunityPostResponse>(
     `/api/v1/posts/${postId}`,
-    body,
     {
       headers: { ...withAuth(token || undefined) },
     }
   )
-  return res.data
-}
-
-export async function deleteCommunityPost(postId: number): Promise<void> {
-  const token = getAccessToken()
-  const res = await api.delete(`/api/v1/posts/${postId}`, {
-    headers: { ...withAuth(token || undefined) },
-  })
   return res.data
 }
 

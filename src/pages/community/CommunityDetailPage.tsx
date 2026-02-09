@@ -101,6 +101,7 @@ export default function CommunityDetailPage() {
   // 좋아요 상태
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
+  const [totalComments, setTotalComments] = useState(0)
 
   // 댓글 정렬
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
@@ -222,10 +223,12 @@ export default function CommunityDetailPage() {
             page_size: COMMENTS_PER_PAGE
           })
           setComments(commentData.results || [])
+          setTotalComments(commentData.count || 0)
           setHasMore(commentData.next !== null)
         } catch (commentErr) {
           console.error('댓글 로딩 실패 (무시됨):', commentErr)
           setComments([])
+          setTotalComments(0)
           setHasMore(false)
         }
 
@@ -427,6 +430,7 @@ export default function CommunityDetailPage() {
         page_size: COMMENTS_PER_PAGE
       })
       setComments(commentData.results || [])
+      setTotalComments(commentData.count || 0)
       setHasMore(commentData.next !== null)
       setPage(1)
 
@@ -454,11 +458,8 @@ export default function CommunityDetailPage() {
 
       // 프론트엔드 상태 업데이트
       setComments(prev => prev.filter(c => c.id !== commentId))
-
-      if (post) {
-        setPost({ ...post, comment_count: post.comment_count - 1 })
-      }
-
+      setTotalComments(prev => Math.max(0, prev - 1))
+      
       setDeleteCommentId(null)
       window.alert('댓글이 삭제되었습니다.')
     } catch (err) {
@@ -734,7 +735,7 @@ export default function CommunityDetailPage() {
         <div className="w-[944px] flex items-center justify-between">
           <div className="flex items-center gap-2 text-[20px] font-bold text-[#121212]">
             <img src="/icons/message-circle.svg" className="h-5 w-5" alt="댓글" />
-            댓글 {post.comment_count ?? 0}개
+            댓글 {totalComments}개
           </div>
 
           <div className="relative">
