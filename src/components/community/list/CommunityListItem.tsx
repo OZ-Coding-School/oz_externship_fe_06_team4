@@ -47,8 +47,8 @@ export default function CommunityListItem({ item, categoryName }: Props) {
       }}
       className="w-full text-left"
     >
-      <div className="flex w-full items-start justify-between gap-[8px] px-[24px] py-[32px]">
-        {/* 왼쪽 텍스트 */}
+      <div className="flex w-full items-start justify-between gap-[32px] px-[24px] py-[32px]">
+        {/* 왼쪽: 게시글 핵심 내용 구역 */}
         <div className="min-w-0 flex-1">
           <div className="text-[12px] font-medium text-[#8A8A8A]">
             {categoryName}
@@ -62,45 +62,47 @@ export default function CommunityListItem({ item, categoryName }: Props) {
             {stripMarkdown(item.content_preview)}
           </div>
 
-          {/* 하단 메타 */}
-          <div className="mt-[54px] flex items-center justify-between">
-            <div className="flex items-center gap-[14px] text-[12px] text-[#8A8A8A]">
-              <span className="inline-flex items-center gap-[6px]">
-                <LikeThumbIcon />
-                <span>좋아요 {item.likes_count}</span>
-              </span>
-              <span className="inline-flex items-center gap-[6px]">
-                <span>댓글 {item.comments_count}</span>
-              </span>
-              <span className="inline-flex items-center gap-[6px]">
-                <span>조회수 {item.view_count}</span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-[10px] text-[12px] text-[#8A8A8A]">
-              <div className="h-[24px] w-[24px] overflow-hidden rounded-full bg-[#EDEDED]" />
-              <div className="flex items-center gap-[8px]">
-                <span className="text-[#6B6B6B]">{item.author.nickname}</span>
-                <span className="text-[#B1B1B1]">{timeText}</span>
-              </div>
-            </div>
+          {/* 하단 지표 (좋아요, 댓글, 조회수) */}
+          <div className="mt-[54px] flex items-center gap-[14px] text-[12px] text-[#8A8A8A]">
+            <span className="inline-flex items-center gap-[6px]">
+              <LikeThumbIcon />
+              <span>좋아요 {item.likes_count}</span>
+            </span>
+            <span className="inline-flex items-center gap-[6px]">
+              <span>댓글 {item.comments_count}</span>
+            </span>
+            <span className="inline-flex items-center gap-[6px]">
+              <span>조회수 {item.view_count}</span>
+            </span>
           </div>
         </div>
 
-        {/* 오른쪽 썸네일 */}
-        <div className="flex-shrink-0">
-          {hasThumb ? (
-            <div className="h-[116px] w-[164px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
-              <img
-                alt="thumbnail"
-                src={item.thumbnail_img_url ?? ''}
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
+        {/* 오른쪽 영역 (작성자 구역 + 썸네일 구역)*/}
+        <div className="flex-shrink-0 flex items-end gap-[20px] self-stretch">
+          {/* 작성자 정보 (닉네임 + 시간) */}
+          <div className="flex items-center gap-[10px] text-[12px] text-[#8A8A8A] mb-[2px]">
+            <div className="h-[24px] w-[24px] overflow-hidden rounded-full bg-[#EDEDED]" />
+            <div className="flex items-center gap-[8px]">
+              <span className="text-[#6B6B6B]">{item.author.nickname}</span>
+              <span className="text-[#B1B1B1]">{timeText}</span>
             </div>
-          ) : (
-            <div className="h-[116px] w-[164px] rounded-[12px] bg-[#F2F2F2]" />
-          )}
+          </div>
+
+          {/* 썸네일 이미지 구역 */}
+          <div className="flex-shrink-0">
+            {hasThumb ? (
+              <div className="h-[160x] w-[200px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
+                <img
+                  alt="thumbnail"
+                  src={item.thumbnail_img_url ?? ''}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            ) : (
+              <div className="h-[160px] w-[200px] rounded-[12px] bg-[#F2F2F2]" />
+            )}
+          </div>
         </div>
       </div>
 
