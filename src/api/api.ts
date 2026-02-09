@@ -106,7 +106,10 @@ export async function createCommunityPost(
 export async function getCommunityPostDetail(
   postId: number
 ): Promise<CommunityPostDetail> {
-  const res = await api.get<CommunityPostDetail>(`/api/v1/posts/${postId}`)
+  const token = getAccessToken()
+  const res = await api.get<CommunityPostDetail>(`/api/v1/posts/${postId}`, {
+    headers: { ...withAuth(token || undefined) }
+  })
   return res.data
 }
 
