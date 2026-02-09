@@ -98,9 +98,10 @@ export default function CommunityDetailPage() {
   const [newComment, setNewComment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 좋아요 상태
+  // 좋아요랑 댓글 개수 상태 (API 응답에 없어서 따로 관리)
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
+  const [totalComments, setTotalComments] = useState(0)
 
   // 댓글 정렬
   const [sortOrder, setSortOrder] = useState<'latest' | 'oldest'>('latest')
@@ -222,10 +223,12 @@ export default function CommunityDetailPage() {
             page_size: COMMENTS_PER_PAGE
           })
           setComments(commentData.results || [])
+          setTotalComments(commentData.count || 0)
           setHasMore(commentData.next !== null)
         } catch (commentErr) {
           console.error('댓글 로딩 실패 (무시됨):', commentErr)
           setComments([])
+          setTotalComments(0)
           setHasMore(false)
         }
 
@@ -305,18 +308,20 @@ export default function CommunityDetailPage() {
     return Array.from(authors.values())
   }
 
-  // 시간 표시 포맷팅
+  // 시간 표시 포맷팅 (방금 전, N분 전, N시간 전 등)
   const formatTimeAgo = (createdAt: string) => {
-    const hours = Math.floor(
-      (currentTime - new Date(createdAt).getTime()) / 1000 / 60 / 60
-    )
+    const diff = currentTime - new Date(createdAt).getTime()
+    const minutes = Math.floor(diff / 1000 / 60)
+    const hours = Math.floor(minutes / 60)
 
-    if (hours < 1) return '방금 전'
+    if (minutes < 1) return '방금 전'
+    if (minutes < 60) return `${minutes}분 전` // 1시간 전까지는 분 단위로 표시
     if (hours < 24) return `${hours}시간 전`
 
     const days = Math.floor(hours / 24)
     if (days < 7) return `${days}일 전`
 
+    // 일주일 넘어가면 그냥 날짜 찍어줌
     return new Date(createdAt).toLocaleDateString()
   }
 
@@ -427,6 +432,7 @@ export default function CommunityDetailPage() {
         page_size: COMMENTS_PER_PAGE
       })
       setComments(commentData.results || [])
+      setTotalComments(commentData.count || 0)
       setHasMore(commentData.next !== null)
       setPage(1)
 
@@ -452,13 +458,10 @@ export default function CommunityDetailPage() {
       // API 호출로 실제 댓글 삭제 (postId와 commentId 모두 필요)
       await deleteCommunityComment(Number(postId), commentId)
 
-      // 프론트엔드 상태 업데이트
+      // 화면에서도 바로 지워주고 개수 하나 줄임
       setComments(prev => prev.filter(c => c.id !== commentId))
-
-      if (post) {
-        setPost({ ...post, comment_count: post.comment_count - 1 })
-      }
-
+      setTotalComments(prev => Math.max(0, prev - 1))
+      
       setDeleteCommentId(null)
       window.alert('댓글이 삭제되었습니다.')
     } catch (err) {
@@ -734,7 +737,7 @@ export default function CommunityDetailPage() {
         <div className="w-[944px] flex items-center justify-between">
           <div className="flex items-center gap-2 text-[20px] font-bold text-[#121212]">
             <img src="/icons/message-circle.svg" className="h-5 w-5" alt="댓글" />
-            댓글 {post.comment_count ?? 0}개
+            댓글 {totalComments}개
           </div>
 
           <div className="relative">

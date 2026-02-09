@@ -1,4 +1,4 @@
-
+// src/utils/community.ts
 export function formatRelativeTime(iso: string) {
   const d = new Date(iso)
   const diff = Date.now() - d.getTime()
@@ -22,30 +22,51 @@ export function formatRelativeTime(iso: string) {
 export function stripMarkdown(text: string): string {
   if (!text) return ''
 
-  let stripped = text
-    // 0. HTML 엔티티 변환 (&lt; -> <, &gt; -> >, &nbsp; -> 공백 등)
+  // 1. HTML 엔티티 변환
+  let s = text
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
-    // 1. HTML 태그 제거 (완성된 태그 및 잘린 태그 <span... 도 처리)
-    .replace(/<[^>]*>?/g, '')
-    // 2. 이미지 제거 ![alt](url) -> alt
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')
-    // 3. 링크 제거 [text](url) -> text
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    // 4. Bold/Italic 제거 (***, **, *, ___, __, _)
-    .replace(/(\*{1,3}|_{1,3})(.*?)\1/g, '$2')
-    // 5. 취소선 제거 ~~text~~ -> text
-    .replace(/~~(.*?)~~/g, '$1')
-    // 6. 코드 블록/인라인 코드 제거
-    .replace(/`{1,3}(.*?)\1/gs, '$1')
-    // 7. 남은 특수 문자 정리 (#, >, -, + 등 줄 시작 기호)
-    .replace(/^[#>\-\+\*\s]+/gm, '')
-    // 8. 여러 개의 줄바꿈을 공백으로 변경
-    .replace(/\n+/g, ' ')
+
+  // 2. 완성된 HTML 태그 반복적 제거 (중첩 태그 대응)
+  let prevS = ''
+  while (s !== prevS) {
+    prevS = s
+    s = s.replace(/<[^>]*>/g, '')
+  }
+
+  // 3. 마지막에 잘린 HTML 태그 제거 (보수적으로)
+  // < 문자가 있고 그 뒤에 > 가 없는 경우, 마지막 < 부터 끝까지를 체크
+  const lastLt = s.lastIndexOf('<')
+  if (lastLt !== -1 && s.indexOf('>', lastLt) === -1) {
+    const trailing = s.slice(lastLt)
+    // 한글이 포함되어 있거나 40자 이상인 경우 태그가 아닌 실제 텍스트일 가능성이 높으므로 제거하지 않음
+    if (!/[\uAC00-\uD7A3]/.test(trailing) && trailing.length < 40) {
+      s = s.slice(0, lastLt)
+    }
+  }
+
+  // 4. 마크다운 기호 제거
+  s = s
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // 이미지 -> alt
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // 링크 -> text
+    .replace(/(\*\*\*|\*\*|\*|___|__|_)((?:(?!\1).)+)\1/g, '$2') // 볼드/이탤릭 
+    .replace(/~~((?:(?!~~).)+)~~/g, '$1') // 취소선
+    .replace(/`{1,3}((?:(?!`).)+)\1/gs, '$1') // 코드
+
+  // 5. 공백 및 특수 기호 정리
+  s = s
+    .replace(/^[#>\-\+\*\s]+/gm, '') // 줄 시작 마크다운 기호
+    .replace(/\s+/g, ' ')
     .trim()
 
-  return stripped
+  // 6. 안전장치: 만약 모든 처리를 거친 결과가 비어있는데 원본에 데이터가 있었다면,
+  // 태그만 단순하게 모두 지운 버전을 반환 
+  if (!s && text.trim()) {
+    return text.replace(/<[^>]*>?/g, '').replace(/[*_~`#>-]/g, '').slice(0, 100).trim()
+  }
+
+  return s
 }
