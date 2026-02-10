@@ -9,8 +9,6 @@ import {
   likeCommunityPost,
   unlikeCommunityPost,
   deleteCommunityPost,
-  isLoggedIn,
-  getCurrentUser,
 } from './../../api/api'
 import { useInfiniteScroll } from './../../hooks'
 import ReactMarkdown from 'react-markdown'
