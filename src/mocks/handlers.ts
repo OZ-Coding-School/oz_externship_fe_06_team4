@@ -216,12 +216,12 @@ function parseNumber(v: string | null, fallback: number) {
 function decoratePost<T extends { id: number; likes_count?: number; comments_count?: number; view_count?: number; [key: string]: any }>(post: T): T {
   const pid = post.id
   
-  // naming migration 및 Store 데이터 반영
+  // naming migration (like_count -> likes_count 등) 및 Store 데이터 반영
   return {
     ...post,
-    likes_count: Math.max(0, likesStore[pid] ?? post.likes_count ?? (post as any).like_count ?? 0),
-    comments_count: Math.max(0, (commentsStore[pid]?.length) ?? post.comments_count ?? (post as any).comment_count ?? 0),
-    view_count: Math.max(0, viewCountStore[pid] ?? post.view_count ?? 0),
+    likes_count: likesStore[pid] ?? post.likes_count ?? (post as any).like_count ?? 0,
+    comments_count: (commentsStore[pid]?.length) ?? post.comments_count ?? (post as any).comment_count ?? 0,
+    view_count: viewCountStore[pid] ?? post.view_count ?? 0,
   }
 }
 
@@ -506,10 +506,10 @@ export const handlers = [
 
   /**
    * 5) 댓글 목록
-   * GET /api/v1/posts/{postId}/comments/
+   * GET /api/v1/posts/{postId}/comments
    * - 로그인 불필요
    */
-  http.get('*/api/v1/posts/:postId/comments/', ({ request, params }) => {
+  http.get('*/api/v1/posts/:postId/comments', ({ request, params }) => {
     const authenticated = isAuthenticated(request)
     const pid = Number(params.postId)
 
@@ -529,10 +529,10 @@ export const handlers = [
 
   /**
    * 6) 댓글 작성
-   * POST /api/v1/posts/{postId}/comments/create/
+   * POST /api/v1/posts/{postId}/comments
    * - 로그인 필요
    */
-  http.post('*/api/v1/posts/:postId/comments/create/', async ({ request, params }) => {
+  http.post('*/api/v1/posts/:postId/comments', async ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
@@ -573,11 +573,11 @@ export const handlers = [
 
   /**
    * 7) 댓글 수정
-   * PUT /api/v1/posts/{postId}/comments/{commentId}/update/
+   * PUT /api/v1/posts/{postId}/comments/{commentId}
    * - 로그인 필요
    */
   http.put(
-    '*/api/v1/posts/:postId/comments/:commentId/update/',
+    '*/api/v1/posts/:postId/comments/:commentId',
     async ({ request, params }) => {
       if (!isAuthenticated(request)) {
         return HttpResponse.json(
@@ -612,11 +612,11 @@ export const handlers = [
 
   /**
    * 8) 댓글 삭제
-   * DELETE /api/v1/posts/{postId}/comments/{commentId}/delete/
+   * DELETE /api/v1/posts/{postId}/comments/{commentId}
    * - 로그인 필요
    */
   http.delete(
-    '*/api/v1/posts/:postId/comments/:commentId/delete/',
+    '*/api/v1/posts/:postId/comments/:commentId',
     ({ request, params }) => {
       if (!isAuthenticated(request)) {
         return HttpResponse.json(
@@ -641,10 +641,10 @@ export const handlers = [
 
   /**
    * 9) 좋아요
-   * POST /api/v1/posts/{postId}/like/
+   * POST /api/v1/posts/{postId}/like
    * - 로그인 필요
    */
-  http.post('*/api/v1/posts/:postId/like/', ({ request, params }) => {
+  http.post('*/api/v1/posts/:postId/like', ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
@@ -666,10 +666,10 @@ export const handlers = [
 
   /**
    * 10) 좋아요 취소
-   * DELETE /api/v1/posts/{postId}/like/
+   * DELETE /api/v1/posts/{postId}/like
    * - 로그인 필요
    */
-  http.delete('*/api/v1/posts/:postId/like/', ({ request, params }) => {
+  http.delete('*/api/v1/posts/:postId/like', ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
