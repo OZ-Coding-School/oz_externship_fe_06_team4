@@ -17,6 +17,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import type { CommunityPostDetail, CommunityComment } from './../../types'
+import { useAuthStore } from '../../store/index'
 
 const DEFAULT_AVATAR = '/icons/profile.svg'
 const MAX_COMMENT_LENGTH = 500
@@ -67,6 +68,10 @@ export default function CommunityDetailPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // 로그인 상태 및 현재 사용자 정보
+  const { isLoggedIn: loggedIn, user } = useAuthStore()
+  const currentUserId = user?.id ?? null
+
   const [post, setPost] = useState<CommunityPostDetail | null>(null)
   const [comments, setComments] = useState<CommunityComment[]>([])
   const [loading, setLoading] = useState(true)
@@ -74,10 +79,6 @@ export default function CommunityDetailPage() {
 
   // 목록에서 전달받은 썸네일 URL
   const thumbnailFromList = location.state?.thumbnail_img_url || null
-
-  // 로그인 상태 및 현재 사용자 정보
-  const loggedIn = isLoggedIn()
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
   // 현재 로그인한 사용자가 게시글 작성자인지 확인 (currentUserId와 post.author.id 비교)
   const isAuthor = loggedIn && currentUserId !== null && post !== null && Number(post.author.id) === Number(currentUserId)
@@ -134,24 +135,6 @@ export default function CommunityDetailPage() {
 
     return () => clearInterval(interval)
   }, [])
-
-  // 현재 로그인한 사용자 정보 가져오기 (API 호출)
-  useEffect(() => {
-    async function fetchCurrentUser() {
-      if (loggedIn) {
-        try {
-          const userData = await getCurrentUser()
-          setCurrentUserId(userData.id)
-        } catch (err) {
-          console.error('사용자 정보 조회 실패:', err)
-          setCurrentUserId(null)
-        }
-      } else {
-        setCurrentUserId(null)
-      }
-    }
-    fetchCurrentUser()
-  }, [loggedIn])
 
   // 멘션 모달 외부 클릭 감지
   useEffect(() => {
