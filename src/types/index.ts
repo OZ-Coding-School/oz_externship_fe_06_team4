@@ -84,11 +84,11 @@ export interface CommunityPostDetail {
   thumbnail_img_url: string | null
   category: CommunityCategory
   view_count: number
-  like_count: number
-  comment_count: number
+  likes_count: number
+  comments_count: number
   created_at: string // ISO string
   updated_at: string // ISO string
-  is_liked: boolean
+  is_like: boolean
   is_author: boolean
 }
 

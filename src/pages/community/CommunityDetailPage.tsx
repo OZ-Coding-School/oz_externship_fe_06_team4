@@ -213,8 +213,8 @@ export default function CommunityDetailPage() {
         // 1. 게시글 상세 조회 (필수)
         const postData = await getCommunityPostDetail(Number(postId))
         setPost(postData)
-        setIsLiked(postData.is_liked || false)
-        setLikeCount(postData.like_count || 0)
+        setIsLiked(postData.is_like || false)
+        setLikeCount(postData.likes_count || 0)
 
         // 2. 댓글 목록 조회 (선택 - 실패해도 게시글은 보여줌)
         try {
@@ -223,7 +223,7 @@ export default function CommunityDetailPage() {
             page_size: COMMENTS_PER_PAGE
           })
           setComments(commentData.results || [])
-          setTotalComments(commentData.count || 0)
+          setTotalComments(commentData.count || postData.comments_count || 0)
           setHasMore(commentData.next !== null)
         } catch (commentErr) {
           console.error('댓글 로딩 실패 (무시됨):', commentErr)
@@ -338,7 +338,7 @@ export default function CommunityDetailPage() {
       if (isLiked) {
         await unlikeCommunityPost(Number(postId))
         setIsLiked(false)
-        setLikeCount((prev) => prev - 1)
+        setLikeCount((prev) => Math.max(0, prev - 1))
       } else {
         await likeCommunityPost(Number(postId))
         setIsLiked(true)

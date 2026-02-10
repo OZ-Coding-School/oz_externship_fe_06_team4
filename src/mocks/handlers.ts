@@ -31,8 +31,8 @@ type CommunityPostListItem = {
   updated_at: string
   category_id: number
   thumbnail_img_url: string | null
-  like_count: number
-  comment_count: number
+  likes_count: number
+  comments_count: number
   view_count: number
 }
 
@@ -42,12 +42,12 @@ type CommunityPostDetail = {
   content: string
   category: CommunityCategory
   author: CommunityAuthor
-  like_count: number
-  comment_count: number
+  likes_count: number
+  comments_count: number
   view_count: number
   created_at: string
   updated_at: string
-  is_liked?: boolean
+  is_like?: boolean
   is_author?: boolean
 }
 
@@ -125,8 +125,8 @@ const INITIAL_POSTS: CommunityPostListItem[] = [
     updated_at: nowISO(),
     category_id: 6,
     thumbnail_img_url: null,
-    like_count: 156,
-    comment_count: 6,
+    likes_count: 156,
+    comments_count: 6,
     view_count: 60,
   },
   {
@@ -140,8 +140,8 @@ const INITIAL_POSTS: CommunityPostListItem[] = [
     category_id: 4,
     thumbnail_img_url:
       'https://images.unsplash.com/photo-1520975958225-7b7b3d0b8d1a?auto=format&fit=crop&w=400&q=60',
-    like_count: 82,
-    comment_count: 2,
+    likes_count: 82,
+    comments_count: 2,
     view_count: 40,
   },
   {
@@ -154,8 +154,8 @@ const INITIAL_POSTS: CommunityPostListItem[] = [
     updated_at: nowISO(),
     category_id: 5,
     thumbnail_img_url: null,
-    like_count: 34,
-    comment_count: 12,
+    likes_count: 34,
+    comments_count: 12,
     view_count: 110,
   },
 ]
@@ -208,6 +208,21 @@ function getCategoryById(categoryId: number): CommunityCategory {
 function parseNumber(v: string | null, fallback: number) {
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+/** 
+ * 게시글 객체를 최신 Store 데이터로 보정하고 네이밍을 통일함
+ */
+function decoratePost<T extends { id: number; likes_count?: number; comments_count?: number; view_count?: number; [key: string]: any }>(post: T): T {
+  const pid = post.id
+  
+  // naming migration 및 Store 데이터 반영
+  return {
+    ...post,
+    likes_count: Math.max(0, likesStore[pid] ?? post.likes_count ?? (post as any).like_count ?? 0),
+    comments_count: Math.max(0, (commentsStore[pid]?.length) ?? post.comments_count ?? (post as any).comment_count ?? 0),
+    view_count: Math.max(0, viewCountStore[pid] ?? post.view_count ?? 0),
+  }
 }
 
 /** =========================
@@ -326,7 +341,7 @@ export const handlers = [
     const count = filtered.length
     const start = (page - 1) * pageSize
     const end = start + pageSize
-    const results = filtered.slice(start, end)
+    const results = filtered.slice(start, end).map(decoratePost) // 데코레이터 적용
 
     return HttpResponse.json({
       count,
@@ -357,8 +372,8 @@ export const handlers = [
       updated_at: nowISO(),
       category_id: body.category_id,
       thumbnail_img_url: null,
-      like_count: 0,
-      comment_count: 0,
+      likes_count: 0,
+      comments_count: 0,
       view_count: 0,
     }
 
@@ -392,23 +407,16 @@ export const handlers = [
       )
     }
 
-    const commentCount = commentsStore[pid]?.length ?? 0
-    const likeCount = likesStore[pid] ?? post.like_count
-    const viewCount = viewCountStore[pid] ?? post.view_count
-
-    const detail: CommunityPostDetail = {
+    const detail: CommunityPostDetail = decoratePost({
       id: post.id,
       title: post.title,
       content: fullContentStore[pid] || post.content_preview,
       category: getCategoryById(post.category_id),
       author: post.author,
-      like_count: likeCount,
-      comment_count: commentCount,
-      view_count: viewCount,
       created_at: post.created_at,
       updated_at: post.updated_at,
-      is_liked: authenticated ? false : undefined,
-    }
+      is_like: authenticated ? false : undefined,
+    } as any) // decoratePost가 필수 필드 보정
 
     return HttpResponse.json(detail)
   }),
@@ -498,10 +506,10 @@ export const handlers = [
 
   /**
    * 5) 댓글 목록
-   * GET /api/v1/posts/{postId}/comments
+   * GET /api/v1/posts/{postId}/comments/
    * - 로그인 불필요
    */
-  http.get('*/api/v1/posts/:postId/comments', ({ request, params }) => {
+  http.get('*/api/v1/posts/:postId/comments/', ({ request, params }) => {
     const authenticated = isAuthenticated(request)
     const pid = Number(params.postId)
 
@@ -521,10 +529,10 @@ export const handlers = [
 
   /**
    * 6) 댓글 작성
-   * POST /api/v1/posts/{postId}/comments
+   * POST /api/v1/posts/{postId}/comments/create/
    * - 로그인 필요
    */
-  http.post('*/api/v1/posts/:postId/comments', async ({ request, params }) => {
+  http.post('*/api/v1/posts/:postId/comments/create/', async ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
@@ -565,11 +573,11 @@ export const handlers = [
 
   /**
    * 7) 댓글 수정
-   * PUT /api/v1/posts/{postId}/comments/{commentId}
+   * PUT /api/v1/posts/{postId}/comments/{commentId}/update/
    * - 로그인 필요
    */
   http.put(
-    '*/api/v1/posts/:postId/comments/:commentId',
+    '*/api/v1/posts/:postId/comments/:commentId/update/',
     async ({ request, params }) => {
       if (!isAuthenticated(request)) {
         return HttpResponse.json(
@@ -604,11 +612,11 @@ export const handlers = [
 
   /**
    * 8) 댓글 삭제
-   * DELETE /api/v1/posts/{postId}/comments/{commentId}
+   * DELETE /api/v1/posts/{postId}/comments/{commentId}/delete/
    * - 로그인 필요
    */
   http.delete(
-    '*/api/v1/posts/:postId/comments/:commentId',
+    '*/api/v1/posts/:postId/comments/:commentId/delete/',
     ({ request, params }) => {
       if (!isAuthenticated(request)) {
         return HttpResponse.json(
@@ -633,10 +641,10 @@ export const handlers = [
 
   /**
    * 9) 좋아요
-   * POST /api/v1/posts/{postId}/like
+   * POST /api/v1/posts/{postId}/like/
    * - 로그인 필요
    */
-  http.post('*/api/v1/posts/:postId/like', ({ request, params }) => {
+  http.post('*/api/v1/posts/:postId/like/', ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
@@ -658,10 +666,10 @@ export const handlers = [
 
   /**
    * 10) 좋아요 취소
-   * DELETE /api/v1/posts/{postId}/like
+   * DELETE /api/v1/posts/{postId}/like/
    * - 로그인 필요
    */
-  http.delete('*/api/v1/posts/:postId/like', ({ request, params }) => {
+  http.delete('*/api/v1/posts/:postId/like/', ({ request, params }) => {
     if (!isAuthenticated(request)) {
       return HttpResponse.json(
         { error_detail: '자격 인증 데이터가 제공되지 않았습니다.' },
