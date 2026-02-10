@@ -59,7 +59,7 @@ export default function CommunityListItem({ item, categoryName }: Props) {
           </div>
 
           <div className="mt-[10px] line-clamp-2 text-[14px] leading-[22px] text-[#8A8A8A]">
-            {stripMarkdown(item.content_preview)}
+            {stripMarkdown(item.content_preview) || '본문 미리보기가 없습니다.'}
           </div>
 
           {/* 하단 지표 (좋아요, 댓글, 조회수) */}

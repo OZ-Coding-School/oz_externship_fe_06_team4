@@ -252,7 +252,7 @@ export default function CommunityEditPage() {
         }
       }
 
-      // 2. 선택 영역 내부의 앞뒤 공백 및 리스트 기호 처리 (기존 로직 유지/강화)
+      // 2. 선택 영역 내부의 앞뒤 공백 및 리스트 기호 처리
       const trimmed = sel.trim()
       const leadingGap = sel.match(/^\s*/)?.[0] || ''
       const trailingGap = sel.match(/\s*$/)?.[0] || ''
@@ -546,7 +546,7 @@ export default function CommunityEditPage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current
     if (!textarea) return
-    const { start, end, value } = getSelectionInfo(textarea)
+    const { start, value } = getSelectionInfo(textarea)
 
     if (e.key === 'Tab') {
       e.preventDefault()
