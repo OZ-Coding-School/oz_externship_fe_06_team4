@@ -1,4 +1,5 @@
 // src/utils/community.ts
+
 export function formatRelativeTime(iso: string) {
   const d = new Date(iso)
   const diff = Date.now() - d.getTime()
@@ -38,11 +39,9 @@ export function stripMarkdown(text: string): string {
   }
 
   // 3. 마지막에 잘린 HTML 태그 제거 (보수적으로)
-  // < 문자가 있고 그 뒤에 > 가 없는 경우, 마지막 < 부터 끝까지를 체크
   const lastLt = s.lastIndexOf('<')
   if (lastLt !== -1 && s.indexOf('>', lastLt) === -1) {
     const trailing = s.slice(lastLt)
-    // 한글이 포함되어 있거나 40자 이상인 경우 태그가 아닌 실제 텍스트일 가능성이 높으므로 제거하지 않음
     if (!/[\uAC00-\uD7A3]/.test(trailing) && trailing.length < 40) {
       s = s.slice(0, lastLt)
     }
@@ -62,11 +61,43 @@ export function stripMarkdown(text: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 
-  // 6. 안전장치: 만약 모든 처리를 거친 결과가 비어있는데 원본에 데이터가 있었다면,
-  // 태그만 단순하게 모두 지운 버전을 반환 
+  // 6. 안전장치
   if (!s && text.trim()) {
     return text.replace(/<[^>]*>?/g, '').replace(/[*_~`#>-]/g, '').slice(0, 100).trim()
   }
 
   return s
+}
+
+/**
+ * 마크다운 텍스트에서 첫 번째 이미지 URL 추출
+ */
+export function extractFirstImageUrl(markdown: string): string | null {
+  if (!markdown) return null
+
+  // 1. 마크다운 이미지 형식: ![alt](url)
+  const markdownImageRegex = /!\[.*?\]\((.*?)\)/
+  const markdownMatch = markdown.match(markdownImageRegex)
+  
+  if (markdownMatch && markdownMatch[1]) {
+    return markdownMatch[1].trim()
+  }
+  
+  // 2. HTML img 태그: <img src="url" ...> 또는 <img ... src="url" ...>
+  const imgSrcRegex = /<img[^>]+src=["']([^"']+)["']/i
+  const imgMatch = markdown.match(imgSrcRegex)
+  
+  if (imgMatch && imgMatch[1]) {
+    return imgMatch[1].trim()
+  }
+  
+  // 3. HTML img 태그 (작은따옴표 없이): <img src=url>
+  const imgSrcNoQuoteRegex = /<img[^>]+src=([^\s>]+)/i
+  const imgNoQuoteMatch = markdown.match(imgSrcNoQuoteRegex)
+  
+  if (imgNoQuoteMatch && imgNoQuoteMatch[1]) {
+    return imgNoQuoteMatch[1].trim()
+  }
+  
+  return null
 }

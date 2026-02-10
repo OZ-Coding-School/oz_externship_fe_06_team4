@@ -1,8 +1,7 @@
-
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CommunityPostListItem } from '../../../types'
-import { formatRelativeTime, stripMarkdown } from '../../../utils/community'
+import { formatRelativeTime, extractFirstImageUrl } from '../../../utils/community'
 
 type Props = {
   item: CommunityPostListItem
@@ -28,21 +27,41 @@ function LikeThumbIcon() {
     </svg>
   )
 }
+
 export default function CommunityListItem({ item, categoryName }: Props) {
   const nav = useNavigate()
   const timeText = useMemo(
     () => formatRelativeTime(item.created_at),
     [item.created_at]
   )
-  const hasThumb = Boolean(item.thumbnail_img_url)
+  
+  // 썸네일 URL 추출
+  const thumbnailUrl = useMemo(() => {
+    // 1. API에서 제공한 thumbnail_img_url 우선
+    if (item.thumbnail_img_url) {
+      console.log('Using API thumbnail:', item.thumbnail_img_url)
+      return item.thumbnail_img_url
+    }
+    
+    // 2. content_preview에서 이미지 추출 시도
+    if (item.content_preview) {
+      const extracted = extractFirstImageUrl(item.content_preview)
+      console.log('Extracted from content_preview:', extracted)
+      return extracted
+    }
+    
+    return null
+  }, [item.thumbnail_img_url, item.content_preview])
+  
+  const hasThumb = Boolean(thumbnailUrl)
 
   return (
     <button
       type="button"
       onClick={() => {
-        console.log('Item clicked, ID:', item.id) // 디버깅용 로그
+        console.log('Item clicked, ID:', item.id, 'Thumbnail:', thumbnailUrl)
         nav(`/community/${item.id}`, {
-          state: { thumbnail_img_url: item.thumbnail_img_url },
+          state: { thumbnail_img_url: thumbnailUrl },
         })
       }}
       className="w-full text-left"
@@ -56,10 +75,6 @@ export default function CommunityListItem({ item, categoryName }: Props) {
 
           <div className="mt-[10px] text-[18px] leading-[28px] font-bold text-[#111111]">
             {item.title}
-          </div>
-
-          <div className="mt-[10px] line-clamp-2 text-[14px] leading-[22px] text-[#8A8A8A]">
-            {stripMarkdown(item.content_preview) || '본문 미리보기가 없습니다.'}
           </div>
 
           {/* 하단 지표 (좋아요, 댓글, 조회수) */}
@@ -81,28 +96,40 @@ export default function CommunityListItem({ item, categoryName }: Props) {
         <div className="flex-shrink-0 flex items-end gap-[20px] self-stretch">
           {/* 작성자 정보 (닉네임 + 시간) */}
           <div className="flex items-center gap-[10px] text-[12px] text-[#8A8A8A] mb-[2px]">
-            <div className="h-[24px] w-[24px] overflow-hidden rounded-full bg-[#EDEDED]" />
+            <img
+              src={item.author.profile_img_url || '/icons/profil.svg'}
+              alt={`${item.author.nickname} 프로필`}
+              className="h-[24px] w-[24px] overflow-hidden rounded-full object-cover bg-[#EDEDED]"
+              onError={(e) => {
+                e.currentTarget.src = '/icons/profil.svg'
+              }}
+            />
             <div className="flex items-center gap-[8px]">
               <span className="text-[#6B6B6B]">{item.author.nickname}</span>
               <span className="text-[#B1B1B1]">{timeText}</span>
             </div>
           </div>
 
-          {/* 썸네일 이미지 구역 */}
-          <div className="flex-shrink-0">
-            {hasThumb ? (
-              <div className="h-[160x] w-[200px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
+          {/* 썸네일 이미지 구역 - 이미지가 있을 때만 표시 */}
+          {hasThumb && (
+            <div className="flex-shrink-0">
+              <div className="h-[160px] w-[200px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
                 <img
                   alt="thumbnail"
-                  src={item.thumbnail_img_url ?? ''}
+                  src={thumbnailUrl ?? ''}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  onError={(e) => {
+                    console.error('Image load failed:', thumbnailUrl)
+                    e.currentTarget.style.display = 'none'
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', thumbnailUrl)
+                  }}
                 />
               </div>
-            ) : (
-              <div className="h-[160px] w-[200px] rounded-[12px] bg-[#F2F2F2]" />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 
