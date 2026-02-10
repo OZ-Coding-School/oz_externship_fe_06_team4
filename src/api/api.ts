@@ -85,10 +85,21 @@ export async function getCommunityPosts(
 ): Promise<PaginatedResponse<CommunityPostListItem>> {
   const q = toQuery(params as unknown as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  const res = await api.get<PaginatedResponse<CommunityPostListItem>>(
+  const res = await api.get<PaginatedResponse<any>>(
     `/api/v1/posts/${suffix}`
   )
-  return res.data
+  
+  // 서버 응답(like_count)을 프론트엔드 형식(likes_count)으로 변환
+  const transformedResults = (res.data.results || []).map((item: any) => ({
+    ...item,
+    likes_count: item.likes_count ?? item.like_count ?? 0,
+    comments_count: item.comments_count ?? item.comment_count ?? 0,
+  }))
+
+  return {
+    ...res.data,
+    results: transformedResults,
+  }
 }
 
 export async function createCommunityPost(
@@ -107,10 +118,18 @@ export async function getCommunityPostDetail(
   postId: number
 ): Promise<CommunityPostDetail> {
   const token = getAccessToken()
-  const res = await api.get<CommunityPostDetail>(`/api/v1/posts/${postId}`, {
+  const res = await api.get<any>(`/api/v1/posts/${postId}`, {
     headers: { ...withAuth(token || undefined) }
   })
-  return res.data
+  
+  const data = res.data
+  // 서버 응답 필드 맵핑 (like_count -> likes_count, is_liked -> is_like 등)
+  return {
+    ...data,
+    likes_count: data.likes_count ?? data.like_count ?? 0,
+    comments_count: data.comments_count ?? data.comment_count ?? 0,
+    is_like: data.is_like ?? data.is_liked ?? false,
+  }
 }
 
 export async function updateCommunityPost(
