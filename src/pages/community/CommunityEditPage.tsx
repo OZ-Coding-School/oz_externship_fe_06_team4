@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuthStore } from '../../store/index'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -63,6 +64,16 @@ export default function CommunityEditPage() {
   const navigate = useNavigate()
   const { postId } = useParams<{ postId?: string }>()
   const isEditMode = Boolean(postId)
+
+  const { isLoggedIn } = useAuthStore()
+
+   useEffect(() => {
+    if (!isLoggedIn) {
+      alert('로그인이 필요한 서비스입니다.')
+      const redirectPath = isEditMode ? `/community/${postId}/edit` : '/community/new'
+      navigate('/login', { replace: true, state: { from: redirectPath } })
+    }
+  }, [isLoggedIn, navigate, isEditMode, postId])
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])
@@ -508,9 +519,7 @@ export default function CommunityEditPage() {
     }
 
     try {
-      setIsLoading(true)
-      const token = getAccessToken()
-      
+      setIsLoading(true)      
       if (isEditMode && postId) {
         // 수정 모드
         await updateCommunityPost(
@@ -530,7 +539,7 @@ export default function CommunityEditPage() {
           category_id: categoryId,
           title,
           content,
-        }, token || undefined)
+        })
         
         alert('게시글이 등록되었습니다.')
         navigate(`/community/${data.pk}`)
