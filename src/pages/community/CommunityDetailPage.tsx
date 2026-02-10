@@ -338,7 +338,7 @@ export default function CommunityDetailPage() {
       if (isLiked) {
         await unlikeCommunityPost(Number(postId))
         setIsLiked(false)
-        setLikeCount((prev) => Math.max(0, prev - 1))
+        setLikeCount((prev) => prev - 1)
       } else {
         await likeCommunityPost(Number(postId))
         setIsLiked(true)
