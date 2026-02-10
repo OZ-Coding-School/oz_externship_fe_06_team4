@@ -178,13 +178,16 @@ export default function CommunityDetailPage() {
     }
   }, [showSortModal])
 
-  // 초기 데이터 로드
-  useEffect(() => {
-    if (!postId) {
-      setLoading(false)
-      setError('게시글 ID가 없습니다.')
-      return
-    }
+    // 초기 데이터 로드
+    useEffect(() => {
+      // 스크롤 최상단으로 이동
+      window.scrollTo(0, 0)
+      
+      if (!postId) {
+        setLoading(false)
+        setError('게시글 ID가 없습니다.')
+        return
+      }
 
     async function fetchData() {
       try {
