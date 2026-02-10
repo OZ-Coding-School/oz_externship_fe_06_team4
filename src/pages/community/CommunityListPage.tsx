@@ -146,7 +146,7 @@ export default function CommunityListPage() {
 
   const categories: CommunityCategory[] = useMemo(() => {
     const server = categoriesRaw ?? []
-    return [{ id: ALL_CATEGORY_ID, name: '전체' }, ...server]
+    return [{ id: ALL_CATEGORY_ID, name: '전체게시판' }, ...server]
   }, [categoriesRaw])
 
   const categoryNameById = useMemo(() => {
