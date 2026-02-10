@@ -30,36 +30,42 @@ function LikeThumbIcon() {
 
 export default function CommunityListItem({ item, categoryName }: Props) {
   const nav = useNavigate()
+
   const timeText = useMemo(
     () => formatRelativeTime(item.created_at),
     [item.created_at]
   )
-  
-  // 썸네일 URL 추출
+
+  //프로필 이미지
+const profileUrl = useMemo(() => {
+  const url = item.author.profile_img_url
+
+  if (
+    !url ||
+    url === 'null' ||
+    url === 'None' ||
+    url.includes('null') ||
+    url.includes('None')
+  ) {
+    return '/icons/profile.svg'
+  }
+
+  return url
+}, [item.author.profile_img_url])
+
+  // 썸네일 로직은 그대로 유지 (건드리지 않음)
   const thumbnailUrl = useMemo(() => {
-    // 1. API에서 제공한 thumbnail_img_url 우선
-    if (item.thumbnail_img_url) {
-      console.log('Using API thumbnail:', item.thumbnail_img_url)
-      return item.thumbnail_img_url
-    }
-    
-    // 2. content_preview에서 이미지 추출 시도
-    if (item.content_preview) {
-      const extracted = extractFirstImageUrl(item.content_preview)
-      console.log('Extracted from content_preview:', extracted)
-      return extracted
-    }
-    
+    if (item.thumbnail_img_url) return item.thumbnail_img_url
+    if (item.content_preview) return extractFirstImageUrl(item.content_preview)
     return null
   }, [item.thumbnail_img_url, item.content_preview])
-  
+
   const hasThumb = Boolean(thumbnailUrl)
 
   return (
     <button
       type="button"
       onClick={() => {
-        console.log('Item clicked, ID:', item.id, 'Thumbnail:', thumbnailUrl)
         nav(`/community/${item.id}`, {
           state: { thumbnail_img_url: thumbnailUrl },
         })
@@ -67,7 +73,8 @@ export default function CommunityListItem({ item, categoryName }: Props) {
       className="w-full text-left"
     >
       <div className="flex w-full items-start justify-between gap-[32px] px-[24px] py-[32px]">
-        {/* 왼쪽: 게시글 핵심 내용 구역 */}
+        
+        {/* 왼쪽 영역 */}
         <div className="min-w-0 flex-1">
           <div className="text-[12px] font-medium text-[#8A8A8A]">
             {categoryName}
@@ -77,29 +84,25 @@ export default function CommunityListItem({ item, categoryName }: Props) {
             {item.title}
           </div>
 
-          {/* 하단 지표 (좋아요, 댓글, 조회수) */}
           <div className="mt-[54px] flex items-center gap-[14px] text-[12px] text-[#8A8A8A]">
             <span className="inline-flex items-center gap-[6px]">
               <LikeThumbIcon />
               <span>좋아요 {item.likes_count}</span>
             </span>
-            <span className="inline-flex items-center gap-[6px]">
-              <span>댓글 {item.comments_count}</span>
-            </span>
-            <span className="inline-flex items-center gap-[6px]">
-              <span>조회수 {item.view_count}</span>
-            </span>
+            <span>댓글 {item.comments_count}</span>
+            <span>조회수 {item.view_count}</span>
           </div>
         </div>
 
-        {/* 오른쪽 영역 (작성자 구역 + 썸네일 구역)*/}
+        {/* 오른쪽 영역 */}
         <div className="flex-shrink-0 flex items-end gap-[20px] self-stretch">
-          {/* 작성자 정보 (닉네임 + 시간) */}
+          
+          {/* 👤 작성자 정보 */}
           <div className="flex items-center gap-[10px] text-[12px] text-[#8A8A8A] mb-[2px]">
             <img
-              src={item.author.profile_img_url || '/icons/profil.svg'}
+              src={profileUrl}
               alt={`${item.author.nickname} 프로필`}
-              className="h-[24px] w-[24px] overflow-hidden rounded-full object-cover bg-[#EDEDED]"
+              className="h-[24px] w-[24px] rounded-full object-cover bg-[#EDEDED]"
               onError={(e) => {
                 e.currentTarget.src = '/icons/profil.svg'
               }}
@@ -110,30 +113,23 @@ export default function CommunityListItem({ item, categoryName }: Props) {
             </div>
           </div>
 
-          {/* 썸네일 이미지 구역 - 이미지가 있을 때만 표시 */}
+          {/* 썸네일 */}
           {hasThumb && (
-            <div className="flex-shrink-0">
-              <div className="h-[160px] w-[200px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
-                <img
-                  alt="thumbnail"
-                  src={thumbnailUrl ?? ''}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error('Image load failed:', thumbnailUrl)
-                    e.currentTarget.style.display = 'none'
-                  }}
-                  onLoad={() => {
-                    console.log('Image loaded successfully:', thumbnailUrl)
-                  }}
-                />
-              </div>
+            <div className="h-[160px] w-[200px] overflow-hidden rounded-[12px] bg-[#F2F2F2]">
+              <img
+                alt="thumbnail"
+                src={thumbnailUrl ?? ''}
+                className="h-full w-full object-cover"
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
             </div>
           )}
         </div>
       </div>
 
-      {/* 구분선 */}
       <div className="mx-[24px] h-[1px] bg-[#EDEDED]" />
     </button>
   )
