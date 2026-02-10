@@ -85,6 +85,7 @@ export async function getCommunityPosts(
 ): Promise<PaginatedResponse<CommunityPostListItem>> {
   const q = toQuery(params as unknown as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
+  // URL 끝에 /를 확실히 붙여서 서버 호환성을 높임
   const res = await api.get<PaginatedResponse<any>>(
     `/api/v1/posts/${suffix}`
   )
