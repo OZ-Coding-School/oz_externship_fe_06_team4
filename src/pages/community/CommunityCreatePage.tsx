@@ -507,7 +507,7 @@ export default function CommunityCreatePage() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current
     if (!textarea) return
-    const { start, end, value } = getSelectionInfo(textarea)
+    const { start, value } = getSelectionInfo(textarea)
 
     if (e.key === 'Tab') {
       e.preventDefault()
