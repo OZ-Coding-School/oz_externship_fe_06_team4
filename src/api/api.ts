@@ -15,6 +15,7 @@ import type {
   CommunityPostDetail,
   DeleteCommunityPostResponse,
 } from '../types'
+import { useAuthStore } from '../store/index'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
@@ -27,6 +28,75 @@ export const api = axios.create({
   },
 })
 
+// =============================
+// Request 인터셉터
+// =============================
+api.interceptors.request.use(
+  (config) => {
+    const { accessToken } = useAuthStore.getState()
+    
+    // 액세스 토큰이 있으면 자동으로 헤더에 추가
+    if (accessToken && config.headers) {
+      config.headers.Authorization = `Bearer ${accessToken}`
+    }
+    
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// =============================
+// Response 인터셉터
+// =============================
+api.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  async (error) => {
+    const originalRequest = error.config
+
+    // 401 Unauthorized 에러 처리
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      try {
+        // 리프레시 토큰으로 새로운 액세스 토큰 요청
+        const refreshResponse = await axios.post(
+          `${BASE_URL}/api/v1/accounts/token/refresh/`,
+          {},
+          { withCredentials: true }
+        )
+
+        const newAccessToken = refreshResponse.data.access_token
+        
+        // 새 토큰 저장
+        useAuthStore.getState().setAccessToken(newAccessToken)
+
+        // 원래 요청 재시도
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
+        }
+        
+        return api(originalRequest)
+      } catch (refreshError) {
+        // 리프레시 토큰도 만료된 경우 로그아웃
+        useAuthStore.getState().logout()
+        
+        // 로그인 페이지로 리다이렉트
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
+        
+        return Promise.reject(refreshError)
+      }
+    }
+
+    return Promise.reject(error)
+  }
+)
+
 /** JS로 읽을 수 있는 쿠키일 때만 사용 가능 */
 function getCookie(name: string): string | null {
   const value = `; ${document.cookie}`
@@ -35,22 +105,25 @@ function getCookie(name: string): string | null {
   return null
 }
 
-/** 로그인 상태 확인 (refreshToken 쿠키 또는 localStorage user 존재 여부) */
+/** 로그인 상태 확인 */
 export function isLoggedIn(): boolean {
-  return getCookie('refreshToken') !== null || localStorage.getItem('user') !== null
+  const { isLoggedIn } = useAuthStore.getState()
+  return isLoggedIn || getCookie('refreshToken') !== null
 }
 
-/** Access Token 가져오기 (HttpOnly면 null 나올 수 있음) */
+/** Access Token 가져오기 (하위 호환성을 위해 유지) */
 export function getAccessToken(): string | null {
-  return getCookie('accessToken')
+  const { accessToken } = useAuthStore.getState()
+  return accessToken || getCookie('accessToken')
 }
 
 /** 현재 로그인한 사용자 정보 조회 API */
 export async function getCurrentUser() {
-  const token = getAccessToken()
-  const res = await api.get('/api/v1/accounts/me/', {
-    headers: { ...withAuth(token || undefined) },
-  })
+  const res = await api.get('/api/v1/accounts/me/')
+  
+  // Zustand 스토어에 사용자 정보 저장
+  useAuthStore.getState().setUser(res.data)
+  
   return res.data
 }
 
@@ -63,12 +136,6 @@ export function toQuery(params?: Record<string, unknown>) {
     sp.set(key, String(value))
   })
   return sp
-}
-
-/** Authorization 헤더 주입 */
-function withAuth(token?: string) {
-  if (!token) return {}
-  return { Authorization: `Bearer ${token}` }
 }
 
 // =============================
@@ -85,7 +152,6 @@ export async function getCommunityPosts(
 ): Promise<PaginatedResponse<CommunityPostListItem>> {
   const q = toQuery(params as unknown as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
-  // URL 끝에 /를 확실히 붙여서 서버 호환성을 높임
   const res = await api.get<PaginatedResponse<any>>(
     `/api/v1/posts/${suffix}`
   )
@@ -104,13 +170,11 @@ export async function getCommunityPosts(
 }
 
 export async function createCommunityPost(
-  body: CreateCommunityPostBody,
-  token?: string
+  body: CreateCommunityPostBody
 ): Promise<CreateCommunityPostResponse> {
   const res = await api.post<CreateCommunityPostResponse>(
     '/api/v1/posts/',
-    body,
-    { headers: { ...withAuth(token) } }
+    body
   )
   return res.data
 }
@@ -118,10 +182,7 @@ export async function createCommunityPost(
 export async function getCommunityPostDetail(
   postId: number
 ): Promise<CommunityPostDetail> {
-  const token = getAccessToken()
-  const res = await api.get<any>(`/api/v1/posts/${postId}`, {
-    headers: { ...withAuth(token || undefined) }
-  })
+  const res = await api.get<any>(`/api/v1/posts/${postId}`)
   
   const data = res.data
   // 서버 응답 필드 맵핑 (like_count -> likes_count, is_liked -> is_like 등)
@@ -137,22 +198,15 @@ export async function updateCommunityPost(
   postId: number,
   body: CreateCommunityPostBody
 ): Promise<void> {
-  const token = getAccessToken()
-  const res = await api.patch<void>(`/api/v1/posts/${postId}`, body, {
-    headers: { ...withAuth(token || undefined) },
-  })
+  const res = await api.patch<void>(`/api/v1/posts/${postId}`, body)
   return res.data
 }
 
 export async function deleteCommunityPost(
   postId: number
 ): Promise<DeleteCommunityPostResponse> {
-  const token = getAccessToken()
   const res = await api.delete<DeleteCommunityPostResponse>(
-    `/api/v1/posts/${postId}`,
-    {
-      headers: { ...withAuth(token || undefined) },
-    }
+    `/api/v1/posts/${postId}`
   )
   return res.data
 }
@@ -173,13 +227,9 @@ export async function createCommunityComment(
   postId: number,
   body: CreateCommunityCommentBody
 ): Promise<CreateCommunityCommentResponse> {
-  const token = getAccessToken()
   const res = await api.post<CreateCommunityCommentResponse>(
     `/api/v1/posts/${postId}/comments/create/`,
-    body,
-    {
-      headers: { ...withAuth(token || undefined) },
-    }
+    body
   )
   return res.data
 }
@@ -189,11 +239,9 @@ export async function updateCommunityComment(
   commentId: number,
   body: UpdateCommunityCommentBody
 ): Promise<UpdateCommunityCommentResponse> {
-  const token = getAccessToken()
   const res = await api.put<UpdateCommunityCommentResponse>(
     `/api/v1/posts/${postId}/comments/${commentId}/update/`,
-    body,
-    { headers: { ...withAuth(token || undefined) } }
+    body
   )
   return res.data
 }
@@ -202,31 +250,22 @@ export async function deleteCommunityComment(
   postId: number,
   commentId: number
 ): Promise<DeleteCommunityCommentResponse> {
-  const token = getAccessToken()
   const res = await api.delete<DeleteCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments/${commentId}/delete/`,
-    {
-      headers: { ...withAuth(token || undefined) },
-    }
+    `/api/v1/posts/${postId}/comments/${commentId}/delete/`
   )
   return res.data
 }
 
 export async function likeCommunityPost(postId: number) {
-  const token = getAccessToken()
   const res = await api.post(
     `/api/v1/posts/${postId}/like/`,
-    {},
-    { headers: { ...withAuth(token || undefined) } }
+    {}
   )
   return res.data
 }
 
 export async function unlikeCommunityPost(postId: number) {
-  const token = getAccessToken()
-  const res = await api.delete(`/api/v1/posts/${postId}/like/`, {
-    headers: { ...withAuth(token || undefined) },
-  })
+  const res = await api.delete(`/api/v1/posts/${postId}/like/`)
   return res.data
 }
 
@@ -246,11 +285,9 @@ export interface PresignedUrlResponse {
  * @returns presigned_url, img_url, key
  */
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
-  const token = getAccessToken()
-  const res = await api.put<PresignedUrlResponse>(
+  const res = await api.post<PresignedUrlResponse>(
     '/api/v1/posts/presigned-url/',
-    { file_name: fileName },
-    { headers: { ...withAuth(token || undefined) } }
+    { file_name: fileName }
   )
   return res.data
 }
