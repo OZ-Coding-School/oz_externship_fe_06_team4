@@ -285,7 +285,7 @@ export interface PresignedUrlResponse {
  * @returns presigned_url, img_url, key
  */
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
-  const res = await api.post<PresignedUrlResponse>(
+  const res = await api.put<PresignedUrlResponse>(
     '/api/v1/posts/presigned-url/',
     { file_name: fileName }
   )
