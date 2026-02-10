@@ -246,8 +246,8 @@ export interface PresignedUrlResponse {
  */
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
   const token = getAccessToken()
-  const res = await api.put<PresignedUrlResponse>(
-    '/api/v1/questions/presigned-url/',
+  const res = await api.post<PresignedUrlResponse>(
+    '/api/v1/post/presigned-url/',
     { file_name: fileName },
     { headers: { ...withAuth(token || undefined) } }
   )
