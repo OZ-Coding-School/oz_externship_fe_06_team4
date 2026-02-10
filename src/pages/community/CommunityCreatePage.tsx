@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../store/index' 
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
@@ -29,7 +30,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, getAccessToken, getPresignedUrl, uploadToS3, isLoggedIn } from '../../api/api'
+import { api, createCommunityPost, getPresignedUrl, uploadToS3 } from '../../api/api'
 
 
 import type { CommunityCategory } from '../../types'
@@ -63,14 +64,15 @@ function replaceInfo(
 
 export default function CommunityCreatePage() {
   const navigate = useNavigate()
+  const { isLoggedIn } = useAuthStore()
 
   // 로그인 체크
-  useEffect(() => {
-    if (!isLoggedIn()) {
+    useEffect(() => {
+    if (!isLoggedIn) {
       alert('로그인이 필요한 서비스입니다.')
       navigate('/login', { replace: true, state: { from: '/community/new' } })
     }
-  }, [navigate])
+  }, [isLoggedIn, navigate])
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])
@@ -487,12 +489,12 @@ export default function CommunityCreatePage() {
 
     try {
       setIsLoading(true)
-      const token = getAccessToken()
       const data = await createCommunityPost({
         category_id: categoryId,
         title,
         content,
-      }, token || undefined)
+      })
+      
       
       alert('게시글이 등록되었습니다.')
       navigate(`/community/${data.pk}`)
