@@ -236,7 +236,7 @@ export default function CommunityListPage() {
 
         {/* 카테고리 탭 + 정렬 */}
         <div className="mt-[60px] flex items-center justify-between">
-          <div className="flex items-center gap-[14px] text-[14px] text-[#111111]">
+          <div className="flex flex-row flex-nowrap items-center gap-[14px] overflow-x-auto whitespace-nowrap text-[14px] text-[#111111]">
             <button
               type="button"
               className="flex h-[24px] w-[24px] items-center justify-center text-[#6B6B6B] hover:text-[#111111]"
@@ -256,7 +256,7 @@ export default function CommunityListPage() {
                     setSelectedCategoryId(c.id)
                   }}
                   className={[
-                    'px-[10px] py-[6px]',
+                    'flex-shrink-0 px-[10px] py-[6px]',
                     active
                       ? 'rounded-[6px] bg-[#EEE6FF] font-semibold text-[#6D28D9]'
                       : 'text-[#111111] hover:text-[#5A00FF]',
