@@ -1,7 +1,6 @@
-
 import { useEffect, useRef, useState } from 'react'
 import type { SearchFilterOption } from '../../../types'
-import { isLoggedIn } from '../../../api/api'
+import { useAuthStore } from '../../../store/index'
 
 function WritePencilIcon() {
   return (
@@ -97,6 +96,9 @@ export default function CommunitySearchBar({
 }: Props) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  
+  // Reactive Auth State
+  const { isLoggedIn, isInitializing } = useAuthStore()
 
   useEffect(() => {
     if (filter === 'all') onChangeFilter('title')
@@ -203,7 +205,7 @@ export default function CommunitySearchBar({
       </div>
 
       {/* 오른쪽: 글쓰기 - 로그인한 사용자에게만 표시 */}
-      {isLoggedIn() && (
+      {(isLoggedIn || isInitializing) && (
         <button
           type="button"
           onClick={onClickWrite}
