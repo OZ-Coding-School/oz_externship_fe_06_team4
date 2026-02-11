@@ -1,5 +1,5 @@
 // src/components/layout/Header.tsx
-import { EXTERNAL_LOGIN_URL, EXTERNAL_SIGNUP_URL, EXTERNAL_QNA_URL } from '../../api/api'
+import { EXTERNAL_LOGIN_URL, EXTERNAL_SIGNUP_URL, EXTERNAL_QNA_URL, EXTERNAL_MAIN_URL } from '../../api/api'
 
 export default function Header() {
   return (
@@ -17,7 +17,7 @@ export default function Header() {
           {/* 왼쪽: 로고 + 메뉴 */}
           <div className="flex items-center gap-10">
             {/* 로고 */}
-            <a href="/" className="flex items-center">
+            <a href={EXTERNAL_MAIN_URL} className="flex items-center">
               <svg
                 width="150"
                 height="20"
@@ -58,7 +58,7 @@ export default function Header() {
             {/* 메뉴 */}
             <nav className="flex gap-10 text-[18px] font-[Pretendard] text-gray-700">
               <a
-                href="/community"
+                href="/"
                 className="hover:text-black transition-colors duration-200"
               >
                 커뮤니티

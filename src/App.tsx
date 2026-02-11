@@ -14,14 +14,13 @@ export default function App() {
 
       <main className="flex-1 pt-[96px] pb-[120px]">
         <Routes>
-          <Route path="/" element={<></>} />
-          <Route path="/community" element={<CommunityListPage />} />
-          <Route path="/community/new" element={<CommunityCreatePage />} />
+          <Route path="/" element={<CommunityListPage />} />
+          <Route path="/new" element={<CommunityCreatePage />} />
           <Route
-            path="/community/:postId/edit"
+            path="/:postId/edit"
             element={<CommunityEditPage />}
           />
-          <Route path="/community/:postId" element={<CommunityDetailPage />} />
+          <Route path="/:postId" element={<CommunityDetailPage />} />
 
           {/* 404 Not Found */}
           <Route path="*" element={<NotFoundPage />} />
