@@ -251,7 +251,7 @@ export async function createCommunityComment(
   body: CreateCommunityCommentBody
 ): Promise<CreateCommunityCommentResponse> {
   const res = await api.post<CreateCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments/`,
+    `/api/v1/posts/${postId}/comments`,
     body
   )
   return res.data
