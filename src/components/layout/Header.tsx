@@ -1,5 +1,5 @@
 // src/components/layout/Header.tsx
-import { EXTERNAL_LOGIN_URL, EXTERNAL_SIGNUP_URL } from '../../api/api'
+import { EXTERNAL_LOGIN_URL, EXTERNAL_SIGNUP_URL, EXTERNAL_QNA_URL } from '../../api/api'
 
 export default function Header() {
   return (
@@ -64,7 +64,7 @@ export default function Header() {
                 커뮤니티
               </a>
               <a
-                href="#"
+                href={EXTERNAL_QNA_URL}
                 className="hover:text-black transition-colors duration-200"
               >
                 질의응답
