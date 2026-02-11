@@ -489,7 +489,7 @@ export default function CommunityDetailPage() {
       
       setShowDeleteModal(false)
       window.alert('게시글이 삭제되었습니다.')
-      navigate('/community')
+      navigate('/')
     } catch (err) {
       console.error('게시글 삭제 실패:', err)
       window.alert('게시글 삭제에 실패했습니다.')
@@ -549,7 +549,7 @@ export default function CommunityDetailPage() {
         {loggedIn && isAuthor && (
           <div className="flex items-center gap-2 text-[16px] text-[#9D9D9D]">
             <button
-              onClick={() => navigate(`/community/${postId}/edit`)}
+              onClick={() => navigate(`/${postId}/edit`)}
               className="hover:text-[#6201E0]"
             >
               수정

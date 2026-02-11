@@ -123,7 +123,7 @@ export default function CommunityEditPage() {
       } catch (error) {
         console.error('게시글 로드 실패:', error)
         alert('게시글을 불러오는데 실패했습니다.')
-        navigate('/community')
+        navigate('/')
       } finally {
         setIsLoadingPost(false)
       }
@@ -519,7 +519,7 @@ export default function CommunityEditPage() {
         )
         
         alert('게시글이 수정되었습니다.')
-        navigate(`/community/${postId}`)
+        navigate(`/${postId}`)
       } else {
         // 생성 모드
         const data = await createCommunityPost({
@@ -529,7 +529,7 @@ export default function CommunityEditPage() {
         })
         
         alert('게시글이 등록되었습니다.')
-        navigate(`/community/${data.pk}`)
+        navigate(`/${data.pk}`)
       }
     } catch (error) {
       console.error('게시글 처리 실패:', error)

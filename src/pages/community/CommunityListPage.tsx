@@ -221,7 +221,7 @@ export default function CommunityListPage() {
     // keyword 상태가 변경되었을 때 useEffect가 트리거되도록 처리
   }
   
-  const onClickWrite = () => navigate('/community/new')
+  const onClickWrite = () => navigate('/new')
 
   return (
     <div className="w-full bg-white">

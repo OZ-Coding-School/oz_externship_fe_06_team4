@@ -66,7 +66,7 @@ const profileUrl = useMemo(() => {
     <button
       type="button"
       onClick={() => {
-        nav(`/community/${item.id}`, {
+        nav(`/${item.id}`, {
           state: { thumbnail_img_url: thumbnailUrl },
         })
       }}
