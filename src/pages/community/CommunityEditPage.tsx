@@ -30,7 +30,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, updateCommunityPost, getCommunityPostDetail, getAccessToken, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { EXTERNAL_LOGIN_URL, api, createCommunityPost, updateCommunityPost, getCommunityPostDetail, getPresignedUrl, uploadToS3 } from '../../api/api'
 import type { CommunityCategory } from '../../types'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
@@ -70,10 +70,9 @@ export default function CommunityEditPage() {
    useEffect(() => {
     if (!isLoggedIn) {
       alert('로그인이 필요한 서비스입니다.')
-      const redirectPath = isEditMode ? `/community/${postId}/edit` : '/community/new'
-      navigate('/login', { replace: true, state: { from: redirectPath } })
+      window.location.href = EXTERNAL_LOGIN_URL
     }
-  }, [isLoggedIn, navigate, isEditMode, postId])
+  }, [isLoggedIn])
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])

@@ -30,7 +30,7 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { api, createCommunityPost, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { EXTERNAL_LOGIN_URL, api, createCommunityPost, getPresignedUrl, uploadToS3 } from '../../api/api'
 
 
 import type { CommunityCategory } from '../../types'
@@ -70,9 +70,9 @@ export default function CommunityCreatePage() {
     useEffect(() => {
     if (!isLoggedIn) {
       alert('로그인이 필요한 서비스입니다.')
-      navigate('/login', { replace: true, state: { from: '/community/new' } })
+      window.location.href = EXTERNAL_LOGIN_URL
     }
-  }, [isLoggedIn, navigate])
+  }, [isLoggedIn])
   
   // --- Data ---
   const [categories, setCategories] = useState<CommunityCategory[]>([])

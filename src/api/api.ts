@@ -47,6 +47,9 @@ api.interceptors.request.use(
   }
 )
 
+export const EXTERNAL_LOGIN_URL = 'https://my.ozcodingschool.site/login'
+export const EXTERNAL_SIGNUP_URL = 'https://my.ozcodingschool.site/signup'
+
 // =============================
 // Response 인터셉터
 // =============================
@@ -86,7 +89,7 @@ api.interceptors.response.use(
         
         // 로그인 페이지로 리다이렉트
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          window.location.href = EXTERNAL_LOGIN_URL
         }
         
         return Promise.reject(refreshError)
