@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
-import { useInfiniteScroll } from '../../hooks'
+import { useInfiniteScroll, useDebounce } from '../../hooks'
 import type {
   CommunityCategory,
   CommunityPostListItem,
@@ -120,6 +120,7 @@ export default function CommunityListPage() {
   
   const [filter, setFilter] = useState<SearchFilterOption>('all')
   const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebounce(keyword, 500)
 
   // 정렬
   const [sortKey, setSortKey] = useState<SortKey>('latest')
@@ -203,7 +204,7 @@ export default function CommunityListPage() {
   // 필터나 카테고리 변경 시 초기화
   useEffect(() => {
     fetchPosts(1, true)
-  }, [selectedCategoryId, keyword, filter, sortKey])
+  }, [selectedCategoryId, debouncedKeyword, filter, sortKey])
 
   // 무한 스크롤 커스텀 훅 적용
   const observerRef = useInfiniteScroll({
