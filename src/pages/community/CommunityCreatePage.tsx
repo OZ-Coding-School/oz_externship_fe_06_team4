@@ -30,10 +30,8 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { EXTERNAL_LOGIN_URL, api, createCommunityPost, getPresignedUrl, uploadToS3 } from '../../api/api'
-
-
-import type { CommunityCategory } from '../../types'
+import { EXTERNAL_LOGIN_URL, createCommunityPost, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { useCategories } from '../../hooks'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
   const start = textarea.selectionStart
@@ -75,7 +73,7 @@ export default function CommunityCreatePage() {
   }, [isLoggedIn])
   
   // --- Data ---
-  const [categories, setCategories] = useState<CommunityCategory[]>([])
+  const { data: categories = [] } = useCategories()
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -102,17 +100,6 @@ export default function CommunityCreatePage() {
   const [historyIndex, setHistoryIndex] = useState(0)
 
 
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories')
-        setCategories(res.data)
-      } catch (error) {
-        console.error('카테고리 불러오기 실패:', error)
-      }
-    }
-    fetchCategories()
-  }, [])
 
 
   useEffect(() => {

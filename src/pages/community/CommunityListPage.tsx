@@ -144,7 +144,7 @@ export default function CommunityListPage() {
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [sortOpen])
 
-  const { data: categoriesRaw } = useQuery({
+   const { data: categoriesRaw } = useQuery({ 
     queryKey: ['community', 'categories'],
     queryFn: communityApi.getCategories,
   })
