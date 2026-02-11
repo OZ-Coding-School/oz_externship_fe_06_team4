@@ -9,6 +9,7 @@ import {
   likeCommunityPost,
   unlikeCommunityPost,
   deleteCommunityPost,
+  EXTERNAL_LOGIN_URL,
 } from './../../api/api'
 import { useInfiniteScroll } from './../../hooks'
 import ReactMarkdown from 'react-markdown'
@@ -313,7 +314,7 @@ export default function CommunityDetailPage() {
   const handleLikeToggle = async () => {
     if (!loggedIn) {
       if (window.confirm('로그인이 필요한 기능입니다. 로그인 하시겠습니까?')) {
-        navigate('/login', { state: { from: `/community/${postId}` } })
+        window.location.href = EXTERNAL_LOGIN_URL
       }
       return
     }
@@ -392,7 +393,7 @@ export default function CommunityDetailPage() {
   const handleCommentSubmit = async () => {
     if (!loggedIn) {
       window.alert('로그인이 필요합니다.')
-      navigate('/login', { state: { from: `/community/${postId}` } })
+      window.location.href = EXTERNAL_LOGIN_URL
       return
     }
 

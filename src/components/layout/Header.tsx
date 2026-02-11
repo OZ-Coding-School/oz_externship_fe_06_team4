@@ -1,4 +1,6 @@
 // src/components/layout/Header.tsx
+import { EXTERNAL_LOGIN_URL, EXTERNAL_SIGNUP_URL } from '../../api/api'
+
 export default function Header() {
   return (
     <header className="fixed top-0 left-0 z-50 w-full">
@@ -73,14 +75,14 @@ export default function Header() {
           {/* 오른쪽 메뉴 */}
           <div className="flex items-center gap-2 font-[Pretendard] text-[16px] text-gray-500">
             <a
-              href="#"
+              href={EXTERNAL_LOGIN_URL}
               className="hover:text-gray-900 transition-colors duration-200"
             >
               로그인
             </a>
             <span className="text-gray-300">|</span>
             <a
-              href="#"
+              href={EXTERNAL_SIGNUP_URL}
               className="hover:text-gray-900 transition-colors duration-200"
             >
               회원가입
