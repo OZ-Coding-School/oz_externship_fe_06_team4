@@ -1,11 +1,10 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
-import { useInfiniteScroll, useDebounce } from '../../hooks'
+import { useInfiniteScroll, useDebounce, useCategories } from '../../hooks'
 import type {
   CommunityCategory,
   CommunityPostListItem,
@@ -140,10 +139,7 @@ export default function CommunityListPage() {
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [sortOpen])
 
-  const { data: categoriesRaw } = useQuery({
-    queryKey: ['community', 'categories'],
-    queryFn: communityApi.getCategories,
-  })
+  const { data: categoriesRaw } = useCategories()
 
   const categories: CommunityCategory[] = useMemo(() => {
     const server = categoriesRaw ?? []

@@ -30,8 +30,8 @@ import {
   ToolbarIndentIcon
 } from '../../components/icons/CustomIcons'
 
-import { EXTERNAL_LOGIN_URL, api, createCommunityPost, updateCommunityPost, getCommunityPostDetail, getPresignedUrl, uploadToS3 } from '../../api/api'
-import type { CommunityCategory } from '../../types'
+import { EXTERNAL_LOGIN_URL, createCommunityPost, updateCommunityPost, getCommunityPostDetail, getPresignedUrl, uploadToS3 } from '../../api/api'
+import { useCategories } from '../../hooks'
 
 function getSelectionInfo(textarea: HTMLTextAreaElement) {
   const start = textarea.selectionStart
@@ -75,7 +75,7 @@ export default function CommunityEditPage() {
   }, [isLoggedIn])
   
   // --- Data ---
-  const [categories, setCategories] = useState<CommunityCategory[]>([])
+  const { data: categories = [] } = useCategories()
   const [categoryId, setCategoryId] = useState<number | null>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -103,18 +103,6 @@ export default function CommunityEditPage() {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
 
-  // 카테고리 목록 불러오기
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await api.get<CommunityCategory[]>('/api/v1/posts/categories')
-        setCategories(res.data)
-      } catch (error) {
-        console.error('카테고리 불러오기 실패:', error)
-      }
-    }
-    fetchCategories()
-  }, [])
 
   // 수정 모드일 때 기존 게시글 데이터 불러오기
   useEffect(() => {
