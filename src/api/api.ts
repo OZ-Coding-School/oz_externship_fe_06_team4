@@ -89,8 +89,11 @@ api.interceptors.response.use(
         // 리프레시 토큰도 만료된 경우 로그아웃
         useAuthStore.getState().logout()
         
-        // 로그인 페이지로 리다이렉트
-        if (typeof window !== 'undefined') {
+        // 401 에러 시 리다이렉트를 건너뛰어야 하는지 확인 (초기 로드 시 등)
+        const skipRedirect = (originalRequest as any)._skipRedirect
+        
+        // 로그인 페이지로 리다이렉트 (skipRedirect가 아닐 때만)
+        if (!skipRedirect && typeof window !== 'undefined') {
           window.location.href = EXTERNAL_LOGIN_URL
         }
         
@@ -132,7 +135,9 @@ export async function getCurrentUser() {
   const { finishInitializing, setUser } = useAuthStore.getState()
   
   try {
-    const res = await api.get('/api/v1/accounts/me/')
+    const res = await api.get('/api/v1/accounts/me/', {
+      _skipRedirect: true,
+    } as any)
     setUser(res.data)
     return res.data
   } catch (error) {
