@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   getCommunityPostDetail,
@@ -65,7 +65,7 @@ const LoadingDots = () => {
 export default function CommunityDetailPage() {
   const { postId } = useParams<{ postId: string }>()
   const navigate = useNavigate()
-  const location = useLocation()
+  // const location = useLocation()
 
   // 로그인 상태 및 현재 사용자 정보
   const { isLoggedIn: loggedIn, user } = useAuthStore()
@@ -77,7 +77,7 @@ export default function CommunityDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   // 목록에서 전달받은 썸네일 URL
-  const thumbnailFromList = location.state?.thumbnail_img_url || null
+  // const thumbnailFromList = location.state?.thumbnail_img_url || null
 
   // 현재 로그인한 사용자가 게시글 작성자인지 확인 (currentUserId와 post.author.id 비교)
   const isAuthor =
