@@ -1,10 +1,12 @@
 import { useMemo, useState, useRef, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import CommunityListItem from '../../components/community/list/CommunityListItem'
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
-import { useInfiniteScroll, useDebounce, useCategories } from '../../hooks'
+import { useInfiniteScroll, useDebounce } from '../../hooks'
+import { useAuthStore } from '../../store/index' 
 import type {
   CommunityCategory,
   CommunityPostListItem,
@@ -108,6 +110,9 @@ const SORT_PARAM: Record<SortKey, string> = {
 
 export default function CommunityListPage() {
   const navigate = useNavigate()
+  const loggedIn = useAuthStore((state) => state.isLoggedIn)
+  const user = useAuthStore((state) => state.user)
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(ALL_CATEGORY_ID)
   
   // 무한 스크롤 상태
@@ -139,7 +144,10 @@ export default function CommunityListPage() {
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [sortOpen])
 
-  const { data: categoriesRaw } = useCategories()
+   const { data: categoriesRaw } = useQuery({ 
+    queryKey: ['community', 'categories'],
+    queryFn: communityApi.getCategories,
+  })
 
   const categories: CommunityCategory[] = useMemo(() => {
     const server = categoriesRaw ?? []
