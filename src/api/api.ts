@@ -69,7 +69,7 @@ api.interceptors.response.use(
       try {
         // 리프레시 토큰으로 새로운 액세스 토큰 요청
         const refreshResponse = await axios.post(
-          `${BASE_URL}/api/v1/accounts/token/refresh/`,
+          `${BASE_URL}/api/v1/accounts/token/refresh`,
           {},
           { withCredentials: true }
         )
