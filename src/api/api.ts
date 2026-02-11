@@ -221,7 +221,7 @@ export async function updateCommunityPost(
   postId: number,
   body: CreateCommunityPostBody
 ): Promise<void> {
-  const res = await api.patch<void>(`/api/v1/posts/${postId}`, body)
+  const res = await api.put<void>(`/api/v1/posts/${postId}`, body)
   return res.data
 }
 
@@ -241,7 +241,7 @@ export async function getCommunityComments(
   const q = toQuery(params as Record<string, unknown>)
   const suffix = q.toString() ? `?${q.toString()}` : ''
   const res = await api.get<PaginatedResponse<CommunityComment>>(
-    `/api/v1/posts/${postId}/comments/${suffix}`
+    `/api/v1/posts/${postId}/comments${suffix}`
   )
   return res.data
 }
@@ -251,7 +251,7 @@ export async function createCommunityComment(
   body: CreateCommunityCommentBody
 ): Promise<CreateCommunityCommentResponse> {
   const res = await api.post<CreateCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments`,
+    `/api/v1/posts/${postId}/comments/`,
     body
   )
   return res.data
@@ -309,7 +309,7 @@ export interface PresignedUrlResponse {
  */
 export async function getPresignedUrl(fileName: string): Promise<PresignedUrlResponse> {
   const res = await api.put<PresignedUrlResponse>(
-    '/api/v1/posts/presigned-url/',
+    '/api/v1/posts/presigned-url',
     { file_name: fileName }
   )
   return res.data
