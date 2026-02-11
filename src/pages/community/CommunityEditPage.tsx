@@ -70,7 +70,7 @@ export default function CommunityEditPage() {
    useEffect(() => {
     if (!isLoggedIn) {
       alert('로그인이 필요한 서비스입니다.')
-      window.location.href = EXTERNAL_LOGIN_URL
+      window.location.href = EXTERNAL_LOGIN_URL || 'https://my.ozcodingschool.site/login'
     }
   }, [isLoggedIn])
   

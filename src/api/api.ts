@@ -17,6 +17,9 @@ import type {
 } from '../types'
 import { useAuthStore } from '../store/index'
 
+export const EXTERNAL_LOGIN_URL = 'https://my.ozcodingschool.site/login'
+export const EXTERNAL_SIGNUP_URL = 'https://my.ozcodingschool.site/signup'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 /** axios 인스턴스 (쿠키 인증 대비: withCredentials) */
@@ -46,9 +49,6 @@ api.interceptors.request.use(
     return Promise.reject(error)
   }
 )
-
-export const EXTERNAL_LOGIN_URL = 'https://my.ozcodingschool.site/login'
-export const EXTERNAL_SIGNUP_URL = 'https://my.ozcodingschool.site/signup'
 
 // =============================
 // Response 인터셉터

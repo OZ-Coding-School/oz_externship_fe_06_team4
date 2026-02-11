@@ -314,7 +314,7 @@ export default function CommunityDetailPage() {
   const handleLikeToggle = async () => {
     if (!loggedIn) {
       if (window.confirm('로그인이 필요한 기능입니다. 로그인 하시겠습니까?')) {
-        window.location.href = EXTERNAL_LOGIN_URL
+        window.location.href = EXTERNAL_LOGIN_URL || 'https://my.ozcodingschool.site/login'
       }
       return
     }
@@ -393,7 +393,7 @@ export default function CommunityDetailPage() {
   const handleCommentSubmit = async () => {
     if (!loggedIn) {
       window.alert('로그인이 필요합니다.')
-      window.location.href = EXTERNAL_LOGIN_URL
+      window.location.href = EXTERNAL_LOGIN_URL || 'https://my.ozcodingschool.site/login'
       return
     }
 
