@@ -112,7 +112,12 @@ function getCookie(name: string): string | null {
 
 /** 로그인 상태 확인 */
 export function isLoggedIn(): boolean {
-  const { isLoggedIn } = useAuthStore.getState()
+  const { isLoggedIn, isInitializing } = useAuthStore.getState()
+  
+  // 초기화 중일 때는 일단 버튼 등을 보여주기 위해 true 반환
+  if (isInitializing) return true
+  
+  // 쿠키에 refreshToken이 있거나 Zustand에 로그인 정보가 있으면 true
   return isLoggedIn || getCookie('refreshToken') !== null
 }
 
@@ -124,12 +129,20 @@ export function getAccessToken(): string | null {
 
 /** 현재 로그인한 사용자 정보 조회 API */
 export async function getCurrentUser() {
-  const res = await api.get('/api/v1/accounts/me/')
+  const { finishInitializing, setUser } = useAuthStore.getState()
   
-  // Zustand 스토어에 사용자 정보 저장
-  useAuthStore.getState().setUser(res.data)
-  
-  return res.data
+  try {
+    const res = await api.get('/api/v1/accounts/me/')
+    setUser(res.data)
+    return res.data
+  } catch (error) {
+    // 초기 로딩 시 실패하더라도 로그아웃 처리는 하지 않음 (비로그인 사용자일 수 있음)
+    console.warn('Initial user fetch failed (expected for non-logged users)')
+    setUser(null)
+    throw error
+  } finally {
+    finishInitializing()
+  }
 }
 
 /** undefined / null 제거 + querystring 생성 */

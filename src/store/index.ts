@@ -12,10 +12,12 @@ interface AuthState {
   user: User | null
   accessToken: string | null
   isLoggedIn: boolean
+  isInitializing: boolean
   setUser: (user: User | null) => void
   setAccessToken: (token: string | null) => void
   logout: () => void
   initAuth: () => void
+  finishInitializing: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       isLoggedIn: false,
+      isInitializing: true,
 
       setUser: (user) =>
         set({
@@ -41,6 +44,11 @@ export const useAuthStore = create<AuthState>()(
           user: null,
           accessToken: null,
           isLoggedIn: false,
+        }),
+
+      finishInitializing: () =>
+        set({
+          isInitializing: false,
         }),
 
       initAuth: () => {
