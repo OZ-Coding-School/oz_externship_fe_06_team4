@@ -251,7 +251,7 @@ export async function createCommunityComment(
   body: CreateCommunityCommentBody
 ): Promise<CreateCommunityCommentResponse> {
   const res = await api.post<CreateCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments/create/`,
+    `/api/v1/posts/${postId}/comments`,
     body
   )
   return res.data
@@ -263,7 +263,7 @@ export async function updateCommunityComment(
   body: UpdateCommunityCommentBody
 ): Promise<UpdateCommunityCommentResponse> {
   const res = await api.put<UpdateCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments/${commentId}/update/`,
+    `/api/v1/posts/${postId}/comments/${commentId}`,
     body
   )
   return res.data
@@ -274,21 +274,21 @@ export async function deleteCommunityComment(
   commentId: number
 ): Promise<DeleteCommunityCommentResponse> {
   const res = await api.delete<DeleteCommunityCommentResponse>(
-    `/api/v1/posts/${postId}/comments/${commentId}/delete/`
+    `/api/v1/posts/${postId}/comments/${commentId}`
   )
   return res.data
 }
 
 export async function likeCommunityPost(postId: number) {
   const res = await api.post(
-    `/api/v1/posts/${postId}/like/`,
+    `/api/v1/posts/${postId}/like`,
     {}
   )
   return res.data
 }
 
 export async function unlikeCommunityPost(postId: number) {
-  const res = await api.delete(`/api/v1/posts/${postId}/like/`)
+  const res = await api.delete(`/api/v1/posts/${postId}/like`)
   return res.data
 }
 
