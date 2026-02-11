@@ -20,7 +20,7 @@ import { useAuthStore } from '../store/index'
 export const EXTERNAL_MAIN_URL = 'https://my.ozcodingschool.site/'
 export const EXTERNAL_LOGIN_URL = 'https://my.ozcodingschool.site/login'
 export const EXTERNAL_SIGNUP_URL = 'https://my.ozcodingschool.site/signup'
-export const EXTERNAL_QNA_URL = 'https://qna.ozcodingschool.site/qna'
+export const EXTERNAL_QNA_URL = 'https://qna.ozcodingschool.site/'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
