@@ -91,6 +91,7 @@ export default function Header() {
       <div className="relative w-full border-b border-gray-200 bg-white">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-5">
           {/* 왼쪽: 로고 + 메뉴 */}
+          <div className="flex items-center gap-6 lg:gap-10">
             <a href="https://my.ozcodingschool.site/" className="flex items-center">
               <svg
                 width="150"
@@ -128,7 +129,6 @@ export default function Header() {
                 </defs>
               </svg>
             </a>
-            <div>
             <nav className="hidden gap-10 font-[Pretendard] text-[18px] text-gray-700 lg:flex">
               <a
                 href="https://community.ozcodingschool.site/"
@@ -149,26 +149,19 @@ export default function Header() {
           <div className="hidden items-center gap-2 font-[Pretendard] text-[16px] text-gray-500 lg:flex">
             {!isAuthenticated ? (
               <>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="auto"
-                  className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
-                  onClick={() => navigate('/login')}
-                >
-                  로그인
-                </Button>
-                <span className="text-mono-400">|</span>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="auto"
-                  className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
-                  onClick={() => navigate('/signup')}
-                >
-                  회원가입
-                </Button>
-              </>
+                href="https://my.ozcodingschool.site/login"
+                className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
+              <a>
+                로그인
+              </a>
+              <span className="text-mono-400">|</span>
+              
+                href="https://my.ozcodingschool.site/signup"
+                className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
+              <a>
+                회원가입
+              </a>
+            </>
             ) : (
               <div className="relative" ref={dropdownRef}>
                 <Button
@@ -270,30 +263,20 @@ export default function Header() {
               <div className="border-mono-200 mt-3 border-t pt-3">
                 {!isAuthenticated ? (
                   <div className="flex flex-col gap-1">
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="auto"
-                      className="text-mono-700 hover:bg-primary-100 w-full justify-start rounded-[8px] px-2 py-2 font-[Pretendard] text-[16px] hover:no-underline"
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        navigate('/login')
-                      }}
+                  <a
+                      href="https://my.ozcodingschool.site/login"
+                      className={dropdownButtonClass}
+                      onClick={() => setOpen(false)}
                     >
                       로그인
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="link"
-                      size="auto"
-                      className="text-mono-700 hover:bg-primary-100 w-full justify-start rounded-[8px] px-2 py-2 font-[Pretendard] text-[16px] hover:no-underline"
-                      onClick={() => {
-                        setMobileMenuOpen(false)
-                        navigate('/signup')
-                      }}
+                    </a>
+                     <a
+                      href="https://my.ozcodingschool.site/signup"
+                      className={dropdownButtonClass}
+                      onClick={() => setOpen(false)}
                     >
                       회원가입
-                    </Button>
+                    </a>
                   </div>
                 ) : (
                   <div>
