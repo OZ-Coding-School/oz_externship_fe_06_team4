@@ -82,7 +82,6 @@ type Props = {
 
 const FILTER_ITEMS: Array<{ key: SearchFilterOption; label: string }> = [
   { key: 'title', label: '제목' },
-  { key: 'content', label: '내용' },
   { key: 'nickname', label: '작성자' },
 ]
 
