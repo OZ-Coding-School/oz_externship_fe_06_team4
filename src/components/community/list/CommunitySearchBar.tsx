@@ -82,7 +82,7 @@ type Props = {
 
 const FILTER_ITEMS: Array<{ key: SearchFilterOption; label: string }> = [
   { key: 'title', label: '제목' },
-  { key: 'nickname', label: '작성자' },
+  { key: 'author', label: '작성자' },
 ]
 
 export default function CommunitySearchBar({
@@ -95,7 +95,7 @@ export default function CommunitySearchBar({
 }: Props) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement | null>(null)
-  
+
   // Reactive Auth State
   const { isLoggedIn, isInitializing } = useAuthStore()
 
@@ -115,7 +115,6 @@ export default function CommunitySearchBar({
     return () => document.removeEventListener('mousedown', onDocDown)
   }, [open])
 
-
   return (
     <div className="flex w-[944px] items-center justify-between">
       {/* 왼쪽: 검색유형 + 검색창 */}
@@ -130,7 +129,10 @@ export default function CommunitySearchBar({
             aria-expanded={open}
           >
             {/* 현재 선택된 필터 표시 */}
-            <span>{FILTER_ITEMS.find(item => item.key === filter)?.label || '검색 유형'}</span>
+            <span>
+              {FILTER_ITEMS.find((item) => item.key === filter)?.label ||
+                '검색 유형'}
+            </span>
             <DropdownChevron open={open} />
           </button>
 

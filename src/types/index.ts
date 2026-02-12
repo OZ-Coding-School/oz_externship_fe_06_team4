@@ -1,14 +1,6 @@
-export type SearchFilterOption =
-  | 'all'
-  | 'title'
-  | 'content'
-  | 'nickname'
+export type SearchFilterOption = 'all' | 'title' | 'content' | 'author'
 
-export type SortOption =
-  | 'latest'
-  | 'likes'
-  | 'comments'
-  | 'oldest'
+export type SortOption = 'latest' | 'likes' | 'comments' | 'oldest'
 
 // =======================
 // Community - Types
