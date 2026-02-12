@@ -149,19 +149,20 @@ export default function Header() {
           <div className="hidden items-center gap-2 font-[Pretendard] text-[16px] text-gray-500 lg:flex">
             {!isAuthenticated ? (
               <>
-                href="https://my.ozcodingschool.site/login"
-                className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
-              <a>
-                로그인
-              </a>
-              <span className="text-mono-400">|</span>
-              
-                href="https://my.ozcodingschool.site/signup"
-                className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
-              <a>
-                회원가입
-              </a>
-            </>
+                <a
+                  href="https://my.ozcodingschool.site/login"
+                  className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
+                >
+                  로그인
+                </a>
+                <span className="text-mono-400">|</span>
+                <a
+                  href="https://my.ozcodingschool.site/signup"
+                  className="text-mono-600 hover:text-mono-600 py-0 font-[Pretendard] text-[16px] hover:no-underline"
+                >
+                  회원가입
+                </a>
+              </>
             ) : (
               <div className="relative" ref={dropdownRef}>
                 <Button
@@ -263,14 +264,14 @@ export default function Header() {
               <div className="border-mono-200 mt-3 border-t pt-3">
                 {!isAuthenticated ? (
                   <div className="flex flex-col gap-1">
-                  <a
+                    <a
                       href="https://my.ozcodingschool.site/login"
                       className={dropdownButtonClass}
                       onClick={() => setOpen(false)}
                     >
                       로그인
                     </a>
-                     <a
+                    <a
                       href="https://my.ozcodingschool.site/signup"
                       className={dropdownButtonClass}
                       onClick={() => setOpen(false)}
