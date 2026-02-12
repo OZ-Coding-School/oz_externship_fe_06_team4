@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -6,7 +6,7 @@ import CommunityListItem from '../../components/community/list/CommunityListItem
 import CommunitySearchBar from '../../components/community/list/CommunitySearchBar'
 import { communityApi } from '../../api/api'
 import { useInfiniteScroll, useDebounce } from '../../hooks'
-// import { useAuthStore } from '../../store/index' 
+import { useAuthStore } from '../../store/index'
 import type {
   CommunityCategory,
   CommunityPostListItem,
@@ -100,18 +100,17 @@ const SORT_LABEL: Record<SortKey, string> = {
   oldest: '오래된 순',
 }
 
-// 서버 파라미터 매핑
 const SORT_PARAM: Record<SortKey, string> = {
-  likes: 'likes',
-  comments: 'comments',
+  likes: 'most_likes',      
+  comments: 'most_comments', 
   latest: 'latest',
   oldest: 'oldest',
 }
 
 export default function CommunityListPage() {
   const navigate = useNavigate()
-  // const loggedIn = useAuthStore((state) => state.isLoggedIn)
-  // const user = useAuthStore((state) => state.user)
+  const loggedIn = useAuthStore((state) => state.isLoggedIn)
+  const user = useAuthStore((state) => state.user)
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<number>(ALL_CATEGORY_ID)
   
@@ -161,7 +160,7 @@ export default function CommunityListPage() {
   }, [categories])
 
   // 데이터 로드 함수
-  const fetchPosts = async (targetPage: number, isInitial = false) => {
+  const fetchPosts = useCallback(async (targetPage: number, isInitial = false) => {
     if (isLoading || (!hasMore && !isInitial)) return
 
     try {
@@ -182,6 +181,8 @@ export default function CommunityListPage() {
         sort: SORT_PARAM[sortKey],
       }
 
+      console.log('Fetching with params:', params) // 디버깅용
+
       // 최소 200ms 로딩 시간 보장 (초기 로딩 시)
       const [res] = await Promise.all([
         communityApi.getPosts(params as any) as Promise<PaginatedResponse<CommunityPostListItem>>,
@@ -191,11 +192,12 @@ export default function CommunityListPage() {
       if (isInitial) {
         console.log('Posts API Response Results:', res.results) // 디버깅용 로그
         setPosts(res.results || [])
+        setHasMore(res.next !== null)
       } else {
         setPosts((prev) => [...prev, ...(res.results || [])])
+        setHasMore(res.next !== null)
       }
 
-      setHasMore(res.next !== null)
       setPage(targetPage)
     } catch (err) {
       console.error('Failed to fetch posts:', err)
@@ -203,10 +205,13 @@ export default function CommunityListPage() {
       setIsLoading(false)
       setIsInitialLoading(false)
     }
-  }
+  }, [selectedCategoryId, keyword, filter, sortKey, isLoading, hasMore])
 
   // 필터나 카테고리 변경 시 초기화
   useEffect(() => {
+    setPosts([])
+    setPage(1)
+    setHasMore(true)
     fetchPosts(1, true)
   }, [selectedCategoryId, debouncedKeyword, filter, sortKey])
 
@@ -367,4 +372,3 @@ export default function CommunityListPage() {
     </div>
   )
 }
-
